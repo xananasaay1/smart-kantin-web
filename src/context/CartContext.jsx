@@ -13,6 +13,16 @@ export function CartProvider({ children }) {
   const [catatan, setCatatan] = useState("");    // catatan untuk penjual
   const [stanAktif, setStanAktif] = useState(null); // warung yang sedang dipesan
 
+  // id pesanan milik pelanggan ini — disimpan permanen di localStorage
+  const [pesananSaya, setPesananSaya] = useState(() => {
+    try {
+      const tersimpan = localStorage.getItem("pesananSaya");
+      return tersimpan ? JSON.parse(tersimpan) : [];
+    } catch {
+      return [];
+    }
+  });
+
   // Tambah item. Cek stok & asal warung.
   function tambah(menu, stanId, stanNama) {
     const itemSekarang = items.find((i) => i.id === menu.id);
@@ -64,6 +74,24 @@ export function CartProvider({ children }) {
     setItems((lama) => lama.filter((i) => i.id !== menuId));
   }
 
+  // Set jumlah item langsung ke angka tertentu (dipakai input keyboard)
+  function setJumlah(menuId, jumlahBaru, stok) {
+    let angka = parseInt(jumlahBaru, 10);
+    if (isNaN(angka) || angka < 0) angka = 0;
+    if (angka > stok) angka = stok; // PENJAGA: tidak boleh lebih dari stok
+
+    setItems((lama) => {
+      if (angka === 0) {
+        return lama.filter((i) => i.id !== menuId);
+      }
+      const ada = lama.find((i) => i.id === menuId);
+      if (ada) {
+        return lama.map((i) => (i.id === menuId ? { ...i, jumlah: angka } : i));
+      }
+      return lama;
+    });
+  }
+
   // Kosongkan keranjang
   function kosongkan() {
     setItems([]);
@@ -74,7 +102,6 @@ export function CartProvider({ children }) {
   // Buat pesanan: simpan ke database + kurangi stok
   async function buatPesanan({ metodeAmbil, jamAmbil, metodeBayar }) {
     const kode = "ORD-" + String(Math.floor(1000 + Math.random() * 9000));
-    
 
     // 1. Simpan pesanan
     const { data: pesananBaru, error: errPesanan } = await supabase
@@ -119,6 +146,17 @@ export function CartProvider({ children }) {
     setCatatan("");
     setStanAktif(null);
 
+    // 5. Simpan id pesanan ke daftar "pesanan saya" + localStorage (permanen)
+    setPesananSaya((lama) => {
+      const baru = [pesananBaru.id, ...lama];
+      try {
+        localStorage.setItem("pesananSaya", JSON.stringify(baru));
+      } catch {
+        // localStorage tidak tersedia, abaikan
+      }
+      return baru;
+    });
+
     return { ...pesananBaru };
   }
 
@@ -133,12 +171,14 @@ export function CartProvider({ children }) {
         tambah,
         kurang,
         hapus,
+        setJumlah,
         kosongkan,
         catatan,
         setCatatan,
         stanAktif,
         gantiWarung,
         buatPesanan,
+        pesananSaya,
         totalHarga,
         totalItem,
       }}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 
@@ -6,18 +6,56 @@ function formatRupiah(angka) {
   return "Rp " + angka.toLocaleString("id-ID");
 }
 
+// Buat pola QR acak (simulasi visual) — berubah tiap generate ulang
+function buatPolaQR(seed) {
+  const pola = [];
+  for (let i = 0; i < 625; i++) {
+    const nilai = (i * 9301 + seed * 49297 + 233280) % 100;
+    pola.push(nilai % 2 === 0);
+  }
+  return pola;
+}
+
 function Pembayaran() {
   const navigate = useNavigate();
   const location = useLocation();
   const { stanAktif, totalHarga, totalItem, buatPesanan } = useCart();
 
-  // Ambil pilihan dari halaman Checkout
   const metodeAmbil = location.state?.metodeAmbil || "sekarang";
   const jamAmbil = location.state?.jamAmbil || null;
 
-  const [memproses, setMemproses] = useState(false);
+  const [detik, setDetik] = useState(30); // hitung mundur 30 detik
+  const [seed, setSeed] = useState(() => Math.floor(Math.random() * 10000));
+  const [hangus, setHangus] = useState(false);
+  const [popupVerif, setPopupVerif] = useState(false); // popup verifikasi muncul
+  const [statusVerif, setStatusVerif] = useState("memilih"); // memilih / loading / gagal
 
-  // Kalau halaman dibuka tanpa data, kembali ke home
+  // Hitung mundur
+  useEffect(() => {
+    if (hangus) return;
+    if (detik <= 0) {
+      setHangus(true);
+      return;
+    }
+    const timer = setInterval(() => {
+      setDetik((d) => d - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [detik, hangus]);
+
+  // Generate QR baru (reset timer & pola)
+  function generateUlang() {
+    setSeed(Math.floor(Math.random() * 10000));
+    setDetik(30);
+    setHangus(false);
+  }
+
+  function formatWaktu(total) {
+    const menit = Math.floor(total / 60);
+    const sisa = total % 60;
+    return `${menit}:${String(sisa).padStart(2, "0")}`;
+  }
+
   if (!stanAktif) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-3 px-5">
@@ -30,8 +68,16 @@ function Pembayaran() {
     );
   }
 
-  async function konfirmasiBayar() {
-    setMemproses(true);
+  // Klik "Saya Sudah Bayar" → buka popup verifikasi (belum langsung proses)
+  function konfirmasiBayar() {
+    if (hangus) return;
+    setStatusVerif("memilih");
+    setPopupVerif(true);
+  }
+
+  // Skenario BERHASIL → simpan pesanan & lanjut
+  async function verifikasiBerhasil() {
+    setStatusVerif("loading");
     const pesanan = await buatPesanan({
       metodeAmbil,
       jamAmbil,
@@ -40,43 +86,72 @@ function Pembayaran() {
     if (pesanan) {
       navigate("/sukses", { state: { kode: pesanan.kode } });
     } else {
-      setMemproses(false);
+      setPopupVerif(false);
       alert("Maaf, terjadi kesalahan. Coba lagi.");
     }
   }
 
+  // Skenario GAGAL → tampilkan pesan gagal (untuk didemokan)
+  function verifikasiGagal() {
+    setStatusVerif("gagal");
+  }
+
+  const pola = buatPolaQR(seed);
+
   return (
     <div className="min-h-screen bg-gray-50 pb-32">
+      {/* HEADER */}
       <header className="bg-brand px-5 pt-10 pb-6 rounded-b-3xl shadow-lg flex items-center gap-3">
         <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 transition flex items-center justify-center text-white text-xl">←</button>
         <h1 className="text-white text-xl font-extrabold">Pembayaran QRIS</h1>
       </header>
 
       <section className="px-5 mt-6">
-        <div className="bg-white rounded-3xl shadow-md p-6 text-center">
-          <p className="text-sm text-gray-500">Bayar ke</p>
-          <p className="font-bold text-ink text-lg">{stanAktif.nama}</p>
-          <p className="text-brand font-extrabold text-2xl mt-1">{formatRupiah(totalHarga)}</p>
-
-          {/* Kode QR simulasi (pola kotak-kotak) */}
-          <div className="mt-5 mx-auto w-56 h-56 bg-white rounded-2xl border-2 border-gray-100 p-3 flex items-center justify-center">
-            <div className="grid grid-cols-8 gap-1 w-full h-full">
-              {Array.from({ length: 64 }).map((_, i) => {
-                const isi = (i * 7 + (i % 5) * 3) % 3 === 0;
-                return (
-                  <div
-                    key={i}
-                    className={isi ? "bg-ink rounded-sm" : "bg-transparent"}
-                  ></div>
-                );
-              })}
-            </div>
+        <div className="bg-white rounded-3xl shadow-md p-6 text-center relative overflow-hidden">
+          {/* Logo QRIS */}
+          <div className="flex items-center justify-center gap-2 mb-1">
+            <span className="text-xs font-extrabold text-brand tracking-wider">QRIS</span>
+            <span className="text-[10px] text-gray-400">Smart Kantin Pay</span>
           </div>
 
-          <p className="text-xs text-gray-400 mt-4">
+          <p className="text-sm text-gray-500 mt-2">Bayar ke</p>
+          <p className="font-bold text-ink text-lg">{stanAktif.nama}</p>
+          <p className="text-brand font-extrabold text-3xl mt-1">{formatRupiah(totalHarga)}</p>
+
+          {/* QR + overlay hangus */}
+          <div className="mt-5 mx-auto w-60 h-60 bg-white rounded-2xl border-2 border-gray-100 p-3 flex items-center justify-center relative">
+            <div className={`grid grid-cols-[repeat(25,1fr)] gap-0 w-full h-full ${hangus ? "blur-sm opacity-30" : ""}`}>
+              {pola.map((isi, i) => (
+                <div key={i} className={isi ? "bg-ink" : "bg-transparent"}></div>
+              ))}
+            </div>
+
+            {hangus && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 rounded-2xl">
+                <p className="text-3xl mb-2">⏱️</p>
+                <p className="font-bold text-ink text-sm">QR Kedaluwarsa</p>
+                <button
+                  onClick={generateUlang}
+                  className="mt-3 bg-brand text-white px-4 py-2 rounded-xl text-sm font-bold shadow hover:bg-brand-dark transition"
+                >
+                  🔄 Buat QR Baru
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Timer */}
+          {!hangus && (
+            <div className="mt-4 inline-flex items-center gap-2 bg-orange-50 px-4 py-2 rounded-full">
+              <span className="text-accent">⏱️</span>
+              <span className="text-sm font-bold text-accent">Berlaku {formatWaktu(detik)}</span>
+            </div>
+          )}
+
+          <p className="text-xs text-gray-400 mt-3">
             Scan dengan aplikasi e-wallet / m-banking
           </p>
-          <div className="mt-2 inline-flex items-center gap-1 text-xs text-gray-400">
+          <div className="mt-1 inline-flex items-center gap-1 text-xs text-gray-400">
             <span>🔒</span> Pembayaran disimulasikan untuk demo
           </div>
         </div>
@@ -92,19 +167,88 @@ function Pembayaran() {
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 shadow-xl">
         <button
           onClick={konfirmasiBayar}
-          disabled={memproses}
-          className="w-full bg-success hover:bg-green-700 text-white rounded-2xl py-4 font-bold shadow-md transition disabled:opacity-60 flex items-center justify-center gap-2"
+          disabled={hangus}
+          className="w-full bg-success hover:bg-green-700 text-white rounded-2xl py-4 font-bold shadow-md transition disabled:opacity-40 flex items-center justify-center gap-2"
         >
-          {memproses ? (
-            <>
-              <span className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin"></span>
-              Memverifikasi pembayaran...
-            </>
-          ) : (
-            "Saya Sudah Bayar ✓"
-          )}
+          {hangus ? "QR Kedaluwarsa — buat QR baru dulu" : "Saya Sudah Bayar ✓"}
         </button>
       </div>
+
+      {/* POPUP VERIFIKASI PEMBAYARAN */}
+      {popupVerif && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-5 z-50">
+          <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl">
+
+            {/* TAHAP 1: pilih (simulasi cek pembayaran) */}
+            {statusVerif === "memilih" && (
+              <>
+                <p className="text-4xl mb-3">🔍</p>
+                <h3 className="font-bold text-ink text-lg">Verifikasi Pembayaran</h3>
+                <p className="text-gray-500 text-sm mt-2">
+                  Sistem akan memeriksa apakah pembayaran sebesar <b>{formatRupiah(totalHarga)}</b> sudah diterima.
+                </p>
+                <div className="flex flex-col gap-2 mt-5">
+                  <button
+                    onClick={verifikasiBerhasil}
+                    className="w-full bg-success text-white py-3 rounded-xl font-bold hover:bg-green-700 transition"
+                  >
+                    ✓ Pembayaran Diterima
+                  </button>
+                  <button
+                    onClick={verifikasiGagal}
+                    className="w-full bg-gray-100 text-gray-600 py-3 rounded-xl font-semibold hover:bg-gray-200 transition"
+                  >
+                    Simulasikan Gagal
+                  </button>
+                  <button
+                    onClick={() => setPopupVerif(false)}
+                    className="w-full text-gray-400 py-2 text-sm hover:text-gray-600 transition"
+                  >
+                    Batal
+                  </button>
+                </div>
+              </>
+            )}
+
+            {/* TAHAP loading */}
+            {statusVerif === "loading" && (
+              <>
+                <span className="w-12 h-12 border-4 border-success/30 border-t-success rounded-full animate-spin mx-auto block"></span>
+                <p className="font-bold text-ink mt-4">Memverifikasi pembayaran...</p>
+                <p className="text-gray-400 text-sm mt-1">Mohon tunggu sebentar</p>
+              </>
+            )}
+
+            {/* TAHAP gagal */}
+            {statusVerif === "gagal" && (
+              <>
+                <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto">
+                  <span className="text-3xl text-red-500">✕</span>
+                </div>
+                <h3 className="font-bold text-red-500 text-lg mt-4">Pembayaran Belum Diterima</h3>
+                <p className="text-gray-500 text-sm mt-2">
+                  Kami belum menerima pembayaran sebesar <b>{formatRupiah(totalHarga)}</b>. Pastikan kamu sudah menyelesaikan pembayaran, lalu coba lagi.
+                </p>
+                <div className="flex flex-col gap-2 mt-5">
+                  <button
+                    onClick={() => setStatusVerif("memilih")}
+                    className="w-full bg-brand text-white py-3 rounded-xl font-bold hover:bg-brand-dark transition"
+                  >
+                    Coba Lagi
+                  </button>
+                  <button
+                    onClick={() => setPopupVerif(false)}
+                    className="w-full bg-gray-100 text-gray-600 py-3 rounded-xl font-semibold hover:bg-gray-200 transition"
+                  >
+                    Tutup
+                  </button>
+                </div>
+              </>
+            )}
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }

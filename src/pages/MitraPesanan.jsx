@@ -1,53 +1,49 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
+import { useAuth } from "../context/AuthContext";
 import MitraNav from "../components/MitraNav";
 
 function formatRupiah(angka) {
   return "Rp " + angka.toLocaleString("id-ID");
 }
 
-const STAN_ID = 1; // Warkop Pak Andi
-
 function MitraPesanan() {
+  const { stanSaya } = useAuth();
   const [pesanan, setPesanan] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("semua"); // semua / diproses / selesai
-  const [adaBaru, setAdaBaru] = useState(false);  // penanda pesanan baru masuk
+  const [filter, setFilter] = useState("semua");
+  const [adaBaru, setAdaBaru] = useState(false);
 
-  // Ambil pesanan awal + pasang pendengar real-time
   useEffect(() => {
+    if (!stanSaya) return;
+
     async function ambilPesanan() {
       const { data } = await supabase
         .from("pesanan")
         .select("*")
-        .eq("stan_id", STAN_ID)
+        .eq("stan_id", stanSaya.id)
         .order("created_at", { ascending: false });
       setPesanan(data || []);
       setLoading(false);
     }
     ambilPesanan();
 
-    // PENDENGAR REAL-TIME: dijalankan tiap ada perubahan di tabel pesanan
     const channel = supabase
       .channel("pesanan-masuk")
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "pesanan", filter: `stan_id=eq.${STAN_ID}` },
+        { event: "INSERT", schema: "public", table: "pesanan", filter: `stan_id=eq.${stanSaya.id}` },
         (payload) => {
-          // Pesanan BARU masuk → tambahkan ke daftar paling atas
           setPesanan((lama) => [payload.new, ...lama]);
           setAdaBaru(true);
-          // Bunyi notifikasi
           bunyiNotif();
-          // Hilangkan penanda setelah 4 detik
           setTimeout(() => setAdaBaru(false), 4000);
         }
       )
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "pesanan", filter: `stan_id=eq.${STAN_ID}` },
+        { event: "UPDATE", schema: "public", table: "pesanan", filter: `stan_id=eq.${stanSaya.id}` },
         (payload) => {
-          // Pesanan diperbarui (status berubah) → perbarui di daftar
           setPesanan((lama) =>
             lama.map((p) => (p.id === payload.new.id ? payload.new : p))
           );
@@ -55,11 +51,9 @@ function MitraPesanan() {
       )
       .subscribe();
 
-    // Berhenti mendengar saat halaman ditutup
     return () => supabase.removeChannel(channel);
-  }, []);
+  }, [stanSaya]);
 
-  // Bunyi notifikasi sederhana
   function bunyiNotif() {
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -77,7 +71,6 @@ function MitraPesanan() {
     }
   }
 
-  // Ubah status pesanan (terima / tolak / selesai)
   async function ubahStatus(id, statusBaru) {
     await supabase.from("pesanan").update({ status: statusBaru }).eq("id", id);
     setPesanan((lama) =>
@@ -85,7 +78,6 @@ function MitraPesanan() {
     );
   }
 
-  // Saring sesuai filter
   const pesananTersaring = pesanan.filter((p) => {
     if (filter === "semua") return true;
     if (filter === "diproses") return p.status === "diproses";
@@ -93,46 +85,43 @@ function MitraPesanan() {
     return true;
   });
 
-  // Warna & label status
+  const jumlahDiproses = pesanan.filter((p) => p.status === "diproses").length;
+
   function labelStatus(status) {
-    if (status === "diproses") return { teks: "Diproses", warna: "bg-blue-100 text-blue-600" };
-    if (status === "siap") return { teks: "Siap Diambil", warna: "bg-orange-100 text-orange-600" };
-    if (status === "selesai") return { teks: "Selesai", warna: "bg-green-100 text-green-600" };
-    if (status === "ditolak") return { teks: "Ditolak", warna: "bg-red-100 text-red-600" };
+    if (status === "diproses") return { teks: "Diproses", warna: "bg-accent/10 text-accent" };
+    if (status === "siap") return { teks: "Siap Diambil", warna: "bg-green-100 text-success" };
+    if (status === "selesai") return { teks: "Selesai", warna: "bg-gray-100 text-gray-500" };
+    if (status === "ditolak") return { teks: "Ditolak", warna: "bg-red-100 text-red-500" };
     return { teks: status, warna: "bg-gray-100 text-gray-600" };
   }
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
-      {/* HEADER */}
       <header className="bg-accent px-5 pt-10 pb-6 rounded-b-3xl shadow-lg">
         <h1 className="text-white text-xl font-extrabold">Pesanan Masuk</h1>
-        {/* Indikator real-time */}
         <div className="flex items-center gap-2 mt-1">
           <span className="w-2 h-2 rounded-full bg-green-300 animate-pulse"></span>
           <span className="text-white/80 text-xs">Terhubung • update otomatis</span>
         </div>
       </header>
 
-      {/* Notifikasi pesanan baru */}
       {adaBaru && (
         <div className="fixed top-5 left-1/2 -translate-x-1/2 bg-success text-white px-5 py-3 rounded-2xl shadow-xl z-50 text-sm font-bold animate-bounce">
           🔔 Pesanan baru masuk!
         </div>
       )}
 
-      {/* FILTER */}
       <div className="px-5 mt-4 flex gap-2">
         {[
           { id: "semua", label: "Semua" },
-          { id: "diproses", label: "Diproses" },
+          { id: "diproses", label: `Diproses${jumlahDiproses > 0 ? ` (${jumlahDiproses})` : ""}` },
           { id: "selesai", label: "Selesai" },
         ].map((f) => (
           <button
             key={f.id}
             onClick={() => setFilter(f.id)}
             className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
-              filter === f.id ? "bg-accent text-white" : "bg-white text-gray-500"
+              filter === f.id ? "bg-accent text-white shadow-md" : "bg-white text-gray-500"
             }`}
           >
             {f.label}
@@ -140,13 +129,14 @@ function MitraPesanan() {
         ))}
       </div>
 
-      {/* DAFTAR PESANAN */}
       <section className="px-5 mt-4 space-y-3">
         {loading ? (
           <p className="text-center text-gray-400 py-10">Memuat...</p>
         ) : pesananTersaring.length === 0 ? (
           <div className="text-center py-16">
-            <p className="text-5xl mb-3">📭</p>
+            <div className="w-20 h-20 rounded-full bg-cream flex items-center justify-center mx-auto mb-3">
+              <span className="text-4xl">📭</span>
+            </div>
             <p className="text-gray-500 font-medium">Belum ada pesanan</p>
             <p className="text-gray-400 text-sm mt-1">Pesanan baru akan muncul di sini otomatis</p>
           </div>
@@ -175,7 +165,7 @@ function MitraPesanan() {
                 </div>
 
                 {p.catatan && (
-                  <p className="text-xs text-gray-500 mt-2 bg-gray-50 rounded-lg px-3 py-2">
+                  <p className="text-xs text-gray-500 mt-2 bg-orange-50 rounded-lg px-3 py-2">
                     📝 {p.catatan}
                   </p>
                 )}
@@ -183,7 +173,6 @@ function MitraPesanan() {
                 <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
                   <span className="font-bold text-brand">{formatRupiah(p.total)}</span>
 
-                  {/* Tombol aksi sesuai status */}
                   {p.status === "diproses" && (
                     <div className="flex gap-2">
                       <button
@@ -205,7 +194,7 @@ function MitraPesanan() {
                       onClick={() => ubahStatus(p.id, "selesai")}
                       className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-accent hover:bg-orange-600 transition"
                     >
-                      Selesai
+                      Tandai Selesai
                     </button>
                   )}
                 </div>

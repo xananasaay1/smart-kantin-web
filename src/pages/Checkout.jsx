@@ -10,10 +10,9 @@ function Checkout() {
   const navigate = useNavigate();
   const { items, stanAktif, totalHarga, totalItem } = useCart();
 
-  const [metodeAmbil, setMetodeAmbil] = useState("sekarang"); // sekarang / preorder
+  const [metodeAmbil, setMetodeAmbil] = useState("sekarang");
   const [jamAmbil, setJamAmbil] = useState("12:30");
 
-  // Kalau tidak ada item (misal halaman dibuka langsung), tendang ke home
   if (items.length === 0) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-3 px-5">
@@ -46,7 +45,13 @@ function Checkout() {
       {/* INFO WARUNG */}
       <section className="px-5 mt-5">
         <div className="bg-white rounded-2xl p-4 shadow-sm flex items-center gap-3">
-          <span className="text-2xl">🏪</span>
+          <div className="w-12 h-12 rounded-xl bg-cream flex items-center justify-center text-2xl shrink-0 overflow-hidden">
+            {stanAktif?.foto_url ? (
+              <img src={stanAktif.foto_url} alt={stanAktif.nama} className="w-full h-full object-cover" />
+            ) : (
+              "🏪"
+            )}
+          </div>
           <div>
             <p className="text-xs text-gray-400">Pesanan dari</p>
             <p className="font-bold text-ink">{stanAktif?.nama}</p>
@@ -61,8 +66,8 @@ function Checkout() {
           {/* Ambil Sekarang */}
           <button
             onClick={() => setMetodeAmbil("sekarang")}
-            className={`w-full text-left bg-white rounded-2xl p-4 shadow-sm border-2 transition flex items-center gap-3 ${
-              metodeAmbil === "sekarang" ? "border-brand" : "border-transparent"
+            className={`w-full text-left rounded-2xl p-4 shadow-sm border-2 transition flex items-center gap-3 ${
+              metodeAmbil === "sekarang" ? "border-brand bg-red-50/50" : "border-transparent bg-white"
             }`}
           >
             <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
@@ -70,17 +75,17 @@ function Checkout() {
             }`}>
               {metodeAmbil === "sekarang" && <span className="w-2.5 h-2.5 rounded-full bg-brand"></span>}
             </span>
-            <div>
-              <p className="font-semibold text-ink">Ambil Sekarang</p>
-              <p className="text-xs text-gray-400">Pesanan disiapkan secepatnya</p>
+            <div className="flex-1">
+              <p className="font-semibold text-ink flex items-center gap-1.5">⚡ Ambil Sekarang</p>
+              <p className="text-xs text-gray-400 mt-0.5">Pesanan disiapkan secepatnya</p>
             </div>
           </button>
 
           {/* Pre-Order */}
           <button
             onClick={() => setMetodeAmbil("preorder")}
-            className={`w-full text-left bg-white rounded-2xl p-4 shadow-sm border-2 transition flex items-center gap-3 ${
-              metodeAmbil === "preorder" ? "border-brand" : "border-transparent"
+            className={`w-full text-left rounded-2xl p-4 shadow-sm border-2 transition flex items-center gap-3 ${
+              metodeAmbil === "preorder" ? "border-brand bg-red-50/50" : "border-transparent bg-white"
             }`}
           >
             <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
@@ -88,9 +93,9 @@ function Checkout() {
             }`}>
               {metodeAmbil === "preorder" && <span className="w-2.5 h-2.5 rounded-full bg-brand"></span>}
             </span>
-            <div>
-              <p className="font-semibold text-ink">Pre-Order ⭐</p>
-              <p className="text-xs text-gray-400">Pilih jam pengambilan, makanan baru dibuat saat mendekati waktu</p>
+            <div className="flex-1">
+              <p className="font-semibold text-ink flex items-center gap-1.5">⭐ Pre-Order</p>
+              <p className="text-xs text-gray-400 mt-0.5">Pilih jam pengambilan, makanan baru dibuat saat mendekati waktu</p>
             </div>
           </button>
         </div>
@@ -137,9 +142,10 @@ function Checkout() {
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 shadow-xl">
         <button
           onClick={lanjutBayar}
-          className="w-full bg-brand hover:bg-brand-dark text-white rounded-2xl py-4 font-bold shadow-md transition"
+          className="w-full bg-brand hover:bg-brand-dark text-white rounded-2xl py-4 font-bold shadow-md transition flex items-center justify-center gap-2"
         >
-          Lanjut ke Pembayaran →
+          Lanjut ke Pembayaran
+          <span>→</span>
         </button>
       </div>
     </div>

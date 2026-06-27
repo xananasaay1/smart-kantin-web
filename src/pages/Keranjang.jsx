@@ -9,7 +9,7 @@ function Keranjang() {
   const navigate = useNavigate();
   const { items, tambah, kurang, hapus, catatan, setCatatan, totalHarga, totalItem } = useCart();
 
-  // KERANJANG KOSONG — tampilkan ajakan, bukan layar kosong
+  // KERANJANG KOSONG
   if (items.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -24,7 +24,9 @@ function Keranjang() {
         </header>
 
         <div className="flex-1 flex flex-col items-center justify-center px-5 text-center">
-          <p className="text-6xl mb-4">🛒</p>
+          <div className="w-24 h-24 rounded-full bg-cream flex items-center justify-center mb-4">
+            <span className="text-5xl">🛒</span>
+          </div>
           <p className="text-ink font-bold text-lg">Keranjang masih kosong</p>
           <p className="text-gray-400 text-sm mt-1">Yuk, pilih menu favoritmu dulu</p>
           <button
@@ -58,8 +60,12 @@ function Keranjang() {
       <section className="px-5 mt-5 space-y-3">
         {items.map((item) => (
           <div key={item.id} className="bg-white rounded-2xl p-4 shadow-sm flex items-center gap-4">
-            <div className="w-16 h-16 rounded-xl bg-cream flex items-center justify-center text-3xl shrink-0">
-              {item.emoji}
+            <div className="w-16 h-16 rounded-xl bg-cream flex items-center justify-center text-3xl shrink-0 overflow-hidden">
+              {item.foto_url ? (
+                <img src={item.foto_url} alt={item.nama} className="w-full h-full object-cover" />
+              ) : (
+                item.emoji
+              )}
             </div>
 
             <div className="flex-1 min-w-0">
@@ -95,7 +101,9 @@ function Keranjang() {
 
       {/* CATATAN UNTUK PENJUAL */}
       <section className="px-5 mt-5">
-        <label className="text-sm font-semibold text-ink">Catatan untuk penjual</label>
+        <label className="text-sm font-semibold text-ink flex items-center gap-1.5">
+          <span>📝</span> Catatan untuk penjual
+        </label>
         <textarea
           value={catatan}
           onChange={(e) => setCatatan(e.target.value)}
@@ -137,9 +145,10 @@ function Keranjang() {
         </div>
         <button
           onClick={() => navigate("/checkout")}
-          className="w-full bg-brand hover:bg-brand-dark text-white rounded-2xl py-4 font-bold shadow-md transition"
+          className="w-full bg-brand hover:bg-brand-dark text-white rounded-2xl py-4 font-bold shadow-md transition flex items-center justify-center gap-2"
         >
-          Lanjut ke Checkout →
+          Lanjut ke Checkout
+          <span>→</span>
         </button>
       </div>
     </div>

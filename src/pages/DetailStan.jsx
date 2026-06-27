@@ -2,6 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { useCart } from "../context/CartContext";
+import StatusPesananBar from "../components/StatusPesananBar";
 
 function formatRupiah(angka) {
   return "Rp " + angka.toLocaleString("id-ID");
@@ -10,44 +11,46 @@ function formatRupiah(angka) {
 function DetailStan() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { items, tambah, kurang, gantiWarung, totalItem, totalHarga } = useCart();
+  const { items, tambah, kurang, setJumlah, gantiWarung, totalItem, totalHarga } = useCart();
   const [popupBedaWarung, setPopupBedaWarung] = useState(null);
+  const [pesanStok, setPesanStok] = useState("");
 
-  const [stan, setStan] = useState(null);    // data warung dari database
-  const [menu, setMenu] = useState([]);      // daftar menu dari database
+  const [stan, setStan] = useState(null);
+  const [menu, setMenu] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Ambil warung + menunya dari Supabase
   useEffect(() => {
     async function ambilData() {
       setLoading(true);
-
-      // Ambil data warung
       const { data: dataStan } = await supabase
-        .from("stan")
-        .select("*")
-        .eq("id", Number(id))
-        .single();
-
-      // Ambil menu milik warung ini
+        .from("stan").select("*").eq("id", Number(id)).single();
       const { data: dataMenu } = await supabase
-        .from("menu")
-        .select("*")
-        .eq("stan_id", Number(id))
-        .order("id");
-
+        .from("menu").select("*").eq("stan_id", Number(id)).order("id");
       setStan(dataStan);
       setMenu(dataMenu || []);
       setLoading(false);
     }
     ambilData();
+
+    const channel = supabase
+      .channel(`menu-stan-${id}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "menu", filter: `stan_id=eq.${id}` },
+        () => ambilData()
+      )
+      .subscribe();
+
+    return () => supabase.removeChannel(channel);
   }, [id]);
 
-  // Coba tambah item; kalau beda warung, munculkan popup konfirmasi
   function cobaTambah(item) {
     const hasil = tambah(item, stan.id, stan.nama);
     if (!hasil.ok && hasil.alasan === "beda_warung") {
       setPopupBedaWarung({ menu: item, warungLama: hasil.warungLama });
+    } else if (!hasil.ok && hasil.alasan === "stok_habis") {
+      setPesanStok(`Stok ${item.nama} tinggal ${hasil.stok}`);
+      setTimeout(() => setPesanStok(""), 2500);
     }
   }
 
@@ -56,7 +59,6 @@ function DetailStan() {
     return item ? item.jumlah : 0;
   }
 
-  // SEDANG MEMUAT
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -68,12 +70,11 @@ function DetailStan() {
     );
   }
 
-  // WARUNG TIDAK DITEMUKAN
   if (!stan) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-3 px-5">
         <p className="text-5xl">🤔</p>
-        <p className="text-gray-600 font-medium">Stan tidak ditemukan</p>
+        <p className="text-gray-600 font-medium">Warung tidak ditemukan</p>
         <button
           onClick={() => navigate("/")}
           className="mt-2 bg-brand text-white px-5 py-2 rounded-xl font-semibold"
@@ -87,7 +88,7 @@ function DetailStan() {
   return (
     <div className="min-h-screen bg-gray-50 pb-28">
       {/* HEADER */}
-      <header className="bg-brand px-5 pt-10 pb-20 rounded-b-3xl shadow-lg relative">
+      <header className="bg-brand px-5 pt-10 pb-12 rounded-b-3xl shadow-lg relative">
         <button
           onClick={() => navigate("/")}
           className="absolute top-10 left-5 w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 transition flex items-center justify-center text-white text-xl"
@@ -95,30 +96,46 @@ function DetailStan() {
           ←
         </button>
         <div className="text-center text-white">
-          <div className="text-5xl mb-2">{stan.emoji}</div>
+          {stan.foto_url ? (
+            <img src={stan.foto_url} alt={stan.nama} className="w-20 h-20 rounded-2xl object-cover mx-auto mb-2 border-2 border-white/30" />
+          ) : (
+            <div className="text-5xl mb-2">{stan.emoji}</div>
+          )}
           <h1 className="text-xl font-extrabold">{stan.nama}</h1>
           <p className="text-white/80 text-sm mt-1">{stan.deskripsi}</p>
         </div>
       </header>
 
       {/* KARTU INFO */}
-      <div className="px-5 -mt-12">
-        <div className="bg-white rounded-2xl shadow-md p-4 flex justify-around text-center">
-          <div>
-            <p className="text-xs text-gray-400">Status</p>
-            <p className={`font-bold text-sm mt-0.5 ${stan.buka ? "text-success" : "text-gray-400"}`}>
-              {stan.buka ? "● Buka" : "Tutup"}
+      <div className="px-5 -mt-6">
+        <div className="bg-white rounded-2xl shadow-md px-5 pt-6  pb-5 grid grid-cols-3 gap-2">
+          {/* Status */}
+          <div className="flex flex-col items-center gap-1.5">
+            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${stan.buka ? "bg-green-50" : "bg-gray-100"}`}>
+              <span className="text-xl">{stan.buka ? "🟢" : "🔴"}</span>
+            </div>
+            <p className="text-[11px] text-gray-400">Status</p>
+            <p className={`font-bold text-sm ${stan.buka ? "text-success" : "text-gray-400"}`}>
+              {stan.buka ? "Buka" : "Tutup"}
             </p>
           </div>
-          <div className="border-l border-gray-100"></div>
-          <div>
-            <p className="text-xs text-gray-400">Jam Buka</p>
-            <p className="font-bold text-sm text-ink mt-0.5">{stan.jam_buka}-{stan.jam_tutup}</p>
+
+          {/* Jam */}
+          <div className="flex flex-col items-center gap-1.5 border-x border-gray-100">
+            <div className="w-11 h-11 rounded-2xl bg-orange-50 flex items-center justify-center">
+              <span className="text-xl">🕐</span>
+            </div>
+            <p className="text-[11px] text-gray-400">Jam Buka</p>
+            <p className="font-bold text-sm text-ink">{stan.jam_buka}-{stan.jam_tutup}</p>
           </div>
-          <div className="border-l border-gray-100"></div>
-          <div>
-            <p className="text-xs text-gray-400">Rating</p>
-            <p className="font-bold text-sm text-ink mt-0.5">★ {stan.rating}</p>
+
+          {/* Rating */}
+          <div className="flex flex-col items-center gap-1.5">
+            <div className="w-11 h-11 rounded-2xl bg-yellow-50 flex items-center justify-center">
+              <span className="text-xl">⭐</span>
+            </div>
+            <p className="text-[11px] text-gray-400">Rating</p>
+            <p className="font-bold text-sm text-ink">{stan.rating} <span className="text-gray-400 font-normal">({stan.jumlah_ulasan})</span></p>
           </div>
         </div>
       </div>
@@ -133,10 +150,16 @@ function DetailStan() {
             return (
               <div
                 key={item.id}
-                className="bg-cream rounded-2xl p-4 flex items-center gap-4"
+                className={`bg-cream rounded-2xl p-4 flex items-center gap-4 transition ${
+                  habis ? "opacity-50 grayscale" : ""
+                }`}
               >
-                <div className="w-16 h-16 rounded-xl bg-white flex items-center justify-center text-3xl shrink-0">
-                  {item.emoji}
+                <div className="w-16 h-16 rounded-xl bg-white flex items-center justify-center text-3xl shrink-0 overflow-hidden">
+                  {item.foto_url ? (
+                    <img src={item.foto_url} alt={item.nama} className="w-full h-full object-cover" />
+                  ) : (
+                    item.emoji
+                  )}
                 </div>
 
                 <div className="flex-1 min-w-0">
@@ -165,7 +188,14 @@ function DetailStan() {
                     >
                       −
                     </button>
-                    <span className="font-bold text-ink w-5 text-center">{qty}</span>
+                    <input
+                      type="number"
+                      value={qty}
+                      min={0}
+                      max={item.stok}
+                      onChange={(e) => setJumlah(item.id, e.target.value, item.stok)}
+                      className="w-12 text-center font-bold text-ink bg-white border border-gray-200 rounded-lg py-1 outline-none focus:ring-2 focus:ring-accent/40 transition [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                    />
                     <button
                       onClick={() => cobaTambah(item)}
                       className="w-8 h-8 rounded-full bg-accent text-white font-bold hover:bg-orange-600 transition"
@@ -192,6 +222,13 @@ function DetailStan() {
             </span>
             <span className="font-bold">Lihat Keranjang →</span>
           </button>
+        </div>
+      )}
+
+      {/* TOAST: peringatan stok */}
+      {pesanStok && (
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 bg-ink text-white px-5 py-3 rounded-2xl shadow-xl z-50 text-sm font-medium">
+          {pesanStok}
         </div>
       )}
 
@@ -224,6 +261,7 @@ function DetailStan() {
           </div>
         </div>
       )}
+      <StatusPesananBar />
     </div>
   );
 }

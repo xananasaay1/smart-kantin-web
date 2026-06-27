@@ -1,15 +1,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
-import { kategoriList } from "../data/stans";
+import CustomerNav from "../components/CustomerNav";
+import StatusPesananBar from "../components/StatusPesananBar";
 
 function Home() {
   const navigate = useNavigate();
   const [cari, setCari] = useState("");
-  const [stans, setStans] = useState([]);      // data warung dari database
-  const [loading, setLoading] = useState(true); // status sedang memuat
+  const [stans, setStans] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Ambil data warung dari Supabase saat halaman dibuka
   useEffect(() => {
     async function ambilStans() {
       setLoading(true);
@@ -28,56 +28,75 @@ function Home() {
     ambilStans();
   }, []);
 
-  // Saring warung berdasarkan kotak pencarian
   const stanTersaring = stans.filter((stan) =>
     stan.nama.toLowerCase().includes(cari.toLowerCase())
   );
 
+  // Hitung berapa warung yang sedang buka (untuk statistik hero)
+  const jumlahBuka = stans.filter((s) => s.buka).length;
+
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
-      {/* HEADER MERAH dengan sapaan + pencarian */}
-      <header className="bg-brand px-5 pt-10 pb-16 rounded-b-3xl shadow-lg">
-        <p className="text-white/80 text-sm font-medium">Selamat datang 👋</p>
-        <h1 className="text-white text-2xl font-extrabold mt-1">
-          Mau makan apa hari ini?
-        </h1>
+      {/* HERO HEADER */}
+      <header className="bg-gradient-to-br from-brand to-brand-dark px-5 pt-10 pb-20 rounded-b-[2rem] shadow-lg relative overflow-hidden">
+        {/* Lingkaran hiasan samar di latar */}
+        <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/10"></div>
+        <div className="absolute top-20 -left-8 w-24 h-24 rounded-full bg-white/5"></div>
 
-        {/* Kotak pencarian */}
-        <div className="mt-5 flex items-center gap-3 bg-white rounded-2xl px-4 py-3 shadow-md">
-          <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-          <input
-            type="text"
-            value={cari}
-            onChange={(e) => setCari(e.target.value)}
-            placeholder="Cari makanan atau stan..."
-            className="flex-1 outline-none text-ink placeholder-gray-400 bg-transparent"
-          />
+        <div className="relative">
+          {/* Logo + nama */}
+          <div className="flex items-center justify-between mb-5">
+            <div className="flex items-center gap-2">
+              <img
+                src="/logo.png"
+                alt="Smart Kantin"
+                className="w-9 h-9 rounded-lg object-cover bg-white/20"
+                onError={(e) => { e.target.style.display = 'none'; }}
+              />
+              <span className="text-white font-extrabold text-lg">Smart Kantin</span>
+            </div>
+            {/* Lencana warung buka */}
+            {!loading && (
+              <div className="bg-white/15 backdrop-blur px-3 py-1.5 rounded-full flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-green-300 animate-pulse"></span>
+                <span className="text-white text-xs font-semibold">{jumlahBuka} warung buka</span>
+              </div>
+            )}
+          </div>
+
+          {/* Sapaan besar */}
+          <h1 className="text-white text-3xl font-extrabold leading-tight">
+            Mau makan apa<br />hari ini? 🍽️
+          </h1>
+          <p className="text-white/80 text-sm mt-2">
+            Pesan dari kantin tanpa antre, ambil sesuai jadwalmu.
+          </p>
+
+          {/* Kotak pencarian */}
+          <div className="mt-5 flex items-center gap-3 bg-white rounded-2xl px-4 py-3.5 shadow-lg">
+            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              value={cari}
+              onChange={(e) => setCari(e.target.value)}
+              placeholder="Cari warung favoritmu..."
+              className="flex-1 outline-none text-ink placeholder-gray-400 bg-transparent"
+            />
+          </div>
         </div>
       </header>
-
-      {/* KATEGORI */}
-      <section className="px-5 -mt-8">
-        <div className="grid grid-cols-4 gap-3">
-          {kategoriList.map((kat) => (
-            <button
-              key={kat.id}
-              className="bg-white rounded-2xl py-4 flex flex-col items-center gap-2 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
-            >
-              <span className="text-2xl">{kat.emoji}</span>
-              <span className="text-xs font-semibold text-ink">{kat.label}</span>
-            </button>
-          ))}
-        </div>
-      </section>
 
       {/* DAFTAR STAN */}
       <section className="px-5 mt-7">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-ink">Stan Tersedia</h2>
+          <div>
+            <h2 className="text-lg font-bold text-ink">Warung Tersedia</h2>
+            <p className="text-xs text-gray-400 mt-0.5">Pilih warung untuk mulai memesan</p>
+          </div>
           {!loading && (
-            <span className="text-sm text-gray-400">{stanTersaring.length} stan</span>
+            <span className="text-sm text-gray-400 shrink-0">{stanTersaring.length} warung</span>
           )}
         </div>
 
@@ -101,11 +120,15 @@ function Home() {
               <div
                 key={stan.id}
                 onClick={() => navigate(`/stan/${stan.id}`)}
-                className="bg-white rounded-2xl p-4 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer flex gap-4"
+                className={`bg-white rounded-2xl p-4 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer flex gap-4 ${!stan.buka ? "opacity-70" : ""}`}
               >
-                {/* Ikon warung */}
-                <div className="w-20 h-20 rounded-xl bg-cream flex items-center justify-center text-4xl shrink-0">
-                  {stan.emoji}
+                {/* Foto / ikon warung */}
+                <div className="w-20 h-20 rounded-xl bg-cream flex items-center justify-center text-4xl shrink-0 overflow-hidden relative">
+                  {stan.foto_url ? (
+                    <img src={stan.foto_url} alt={stan.nama} className="w-full h-full object-cover" />
+                  ) : (
+                    stan.emoji
+                  )}
                 </div>
 
                 {/* Info warung */}
@@ -113,16 +136,16 @@ function Home() {
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="font-bold text-ink truncate">{stan.nama}</h3>
                     {stan.buka ? (
-                      <span className="flex items-center gap-1 text-xs font-semibold text-success shrink-0">
-                        <span className="w-2 h-2 rounded-full bg-success animate-pulse"></span>
+                      <span className="flex items-center gap-1 text-xs font-semibold text-success shrink-0 bg-green-50 px-2 py-0.5 rounded-full">
+                        <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse"></span>
                         Buka
                       </span>
                     ) : (
-                      <span className="text-xs font-semibold text-gray-400 shrink-0">Tutup</span>
+                      <span className="text-xs font-semibold text-gray-400 shrink-0 bg-gray-100 px-2 py-0.5 rounded-full">Tutup</span>
                     )}
                   </div>
 
-                  <p className="text-sm text-gray-500 mt-0.5 truncate">{stan.deskripsi}</p>
+                  <p className="text-sm text-gray-500 mt-1 truncate">{stan.deskripsi}</p>
 
                   <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
                     <span className="flex items-center gap-1">
@@ -130,8 +153,8 @@ function Home() {
                       <span className="font-semibold text-ink">{stan.rating}</span>
                       <span>({stan.jumlah_ulasan})</span>
                     </span>
-                    <span>•</span>
-                    <span>🕐 {stan.jam_buka} - {stan.jam_tutup}</span>
+                    <span className="text-gray-300">•</span>
+                    <span className="flex items-center gap-1">🕐 {stan.jam_buka}-{stan.jam_tutup}</span>
                   </div>
                 </div>
               </div>
@@ -143,11 +166,14 @@ function Home() {
         {!loading && stanTersaring.length === 0 && (
           <div className="text-center py-16">
             <p className="text-5xl mb-3">🔍</p>
-            <p className="text-gray-500 font-medium">Stan tidak ditemukan</p>
+            <p className="text-gray-500 font-medium">Warung tidak ditemukan</p>
             <p className="text-gray-400 text-sm mt-1">Coba kata kunci lain</p>
           </div>
         )}
       </section>
+
+      <StatusPesananBar />
+      <CustomerNav />
     </div>
   );
 }
