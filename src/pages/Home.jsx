@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { cekBuka } from "../lib/jamBuka";
 import CustomerNav from "../components/CustomerNav";
 import StatusPesananBar from "../components/StatusPesananBar";
 
@@ -9,6 +10,13 @@ function Home() {
   const [cari, setCari] = useState("");
   const [stans, setStans] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [waktuSekarang, setWaktuSekarang] = useState(Date.now());
+
+  // Perbarui tiap menit supaya status buka/tutup ikut jam real-time
+  useEffect(() => {
+    const timer = setInterval(() => setWaktuSekarang(Date.now()), 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     async function ambilStans() {
@@ -28,11 +36,16 @@ function Home() {
     ambilStans();
   }, []);
 
-  const stanTersaring = stans.filter((stan) =>
+  // Hitung status buka tiap warung (gabungan: manual + jam). waktuSekarang membuat ini dihitung ulang tiap menit.
+  const stansDenganStatus = stans.map((s) => ({
+    ...s,
+    sedangBuka: cekBuka(s.buka, s.jam_buka, s.jam_tutup),
+  }));
+  const jumlahBuka = stansDenganStatus.filter((s) => s.sedangBuka).length;
+
+  const stanTersaring = stansDenganStatus.filter((stan) =>
     stan.nama.toLowerCase().includes(cari.toLowerCase())
   );
-
-  const jumlahBuka = stans.filter((s) => s.buka).length;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
@@ -117,7 +130,7 @@ function Home() {
               <div
                 key={stan.id}
                 onClick={() => navigate(`/stan/${stan.id}`)}
-                className={`bg-white rounded-2xl p-4 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer flex gap-4 ${!stan.buka ? "opacity-70" : ""}`}
+                className={`bg-white rounded-2xl p-4 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer flex gap-4 ${!stan.sedangBuka ? "opacity-70" : ""}`}
               >
                 {/* Foto / ikon warung */}
                 <div className="w-20 h-20 rounded-xl bg-cream flex items-center justify-center text-4xl shrink-0 overflow-hidden relative">
@@ -132,7 +145,7 @@ function Home() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="font-bold text-ink truncate">{stan.nama}</h3>
-                    {stan.buka ? (
+                    {stan.sedangBuka ? (
                       <span className="flex items-center gap-1 text-xs font-semibold text-success shrink-0 bg-green-50 px-2 py-0.5 rounded-full">
                         <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse"></span>
                         Buka

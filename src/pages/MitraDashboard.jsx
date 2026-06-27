@@ -2,12 +2,12 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
+import { cekBuka } from "../lib/jamBuka";
 import MitraNav from "../components/MitraNav";
 
 function formatRupiah(angka) {
   return "Rp " + angka.toLocaleString("id-ID");
 }
-
 
 function MitraDashboard() {
   const navigate = useNavigate();
@@ -17,9 +17,16 @@ function MitraDashboard() {
   const [pesanan, setPesanan] = useState([]);
   const [ratingInfo, setRatingInfo] = useState({ rata: "0.0", jumlah: 0 });
   const [loading, setLoading] = useState(true);
+  const [waktuSekarang, setWaktuSekarang] = useState(Date.now());
+
+  // Perbarui tiap menit supaya status buka/tutup ikut jam
+  useEffect(() => {
+    const timer = setInterval(() => setWaktuSekarang(Date.now()), 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
-    if (!stanSaya) return; // tunggu sampai warung milik user termuat
+    if (!stanSaya) return;
 
     async function ambilData() {
       setLoading(true);
@@ -66,8 +73,12 @@ function MitraDashboard() {
     .reduce((sum, p) => sum + p.total, 0);
   const jumlahSelesai = pesananHariIni.filter((p) => p.status === "selesai").length;
 
-  // Pesanan yang butuh perhatian (masih diproses)
   const pesananBaru = pesanan.filter((p) => p.status === "diproses").length;
+
+  // Status sebenarnya (gabungan manual + jam) — ini yang dilihat customer
+  const warungBukaAsli = stan ? cekBuka(stan.buka, stan.jam_buka, stan.jam_tutup) : false;
+  // Apakah tutup KARENA di luar jam (padahal mitra set buka)?
+  const tutupKarenaJam = stan && stan.buka && !warungBukaAsli;
 
   async function handleLogout() {
     await logout();
@@ -118,21 +129,37 @@ function MitraDashboard() {
             </button>
           </div>
 
-          {/* Toggle buka/tutup */}
+          {/* Toggle buka/tutup — tampilkan STATUS SEBENARNYA (ikut jam) */}
           <div className="mt-4 bg-white/15 backdrop-blur rounded-2xl px-4 py-3 flex items-center justify-between">
             <div>
               <span className="text-white font-semibold">Status Warung</span>
-              <p className="text-white/70 text-xs">{stan?.buka ? "Pelanggan bisa memesan" : "Warung sedang tutup"}</p>
+              <p className="text-white/70 text-xs">
+                {warungBukaAsli
+                  ? "Pelanggan bisa memesan"
+                  : tutupKarenaJam
+                  ? `Tutup otomatis (di luar jam ${stan.jam_buka}-${stan.jam_tutup})`
+                  : "Warung sedang tutup"}
+              </p>
             </div>
             <button
               onClick={toggleBuka}
               className={`px-4 py-1.5 rounded-full font-bold text-sm transition ${
-                stan?.buka ? "bg-white text-success" : "bg-white/30 text-white"
+                warungBukaAsli ? "bg-white text-success" : "bg-white/30 text-white"
               }`}
             >
-              {stan?.buka ? "● Buka" : "Tutup"}
+              {warungBukaAsli ? "● Buka" : "Tutup"}
             </button>
           </div>
+
+          {/* Keterangan kalau tutup karena jam (padahal mitra set buka) */}
+          {tutupKarenaJam && (
+            <div className="mt-2 bg-white/20 rounded-xl px-4 py-2.5 flex items-start gap-2">
+              <span className="text-sm">🕐</span>
+              <p className="text-white text-xs leading-relaxed">
+                Kamu mengatur warung <b>buka</b>, tapi sekarang di luar jam operasional ({stan.jam_buka}-{stan.jam_tutup}), jadi pelanggan melihat warung <b>tutup</b>. Warung akan otomatis buka lagi saat masuk jam operasional.
+              </p>
+            </div>
+          )}
         </div>
       </header>
 
@@ -184,7 +211,6 @@ function MitraDashboard() {
             onClick={() => navigate("/mitra/pesanan")}
             className="bg-white rounded-2xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition text-left relative"
           >
-            {/* Lencana pesanan baru */}
             {pesananBaru > 0 && (
               <span className="absolute top-3 right-3 bg-red-500 text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">
                 {pesananBaru}

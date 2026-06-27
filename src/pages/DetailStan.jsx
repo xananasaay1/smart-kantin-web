@@ -2,6 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { useCart } from "../context/CartContext";
+import { cekBuka } from "../lib/jamBuka";
 import StatusPesananBar from "../components/StatusPesananBar";
 
 function formatRupiah(angka) {
@@ -18,6 +19,13 @@ function DetailStan() {
   const [stan, setStan] = useState(null);
   const [menu, setMenu] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [waktuSekarang, setWaktuSekarang] = useState(Date.now());
+
+  // Perbarui tiap menit supaya status buka/tutup ikut jam
+  useEffect(() => {
+    const timer = setInterval(() => setWaktuSekarang(Date.now()), 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     async function ambilData() {
@@ -44,7 +52,15 @@ function DetailStan() {
     return () => supabase.removeChannel(channel);
   }, [id]);
 
+  // Status buka warung (gabungan manual + jam)
+  const warungBuka = stan ? cekBuka(stan.buka, stan.jam_buka, stan.jam_tutup) : false;
+
   function cobaTambah(item) {
+    if (!warungBuka) {
+      setPesanStok("Warung sedang tutup, tidak bisa memesan");
+      setTimeout(() => setPesanStok(""), 2500);
+      return;
+    }
     const hasil = tambah(item, stan.id, stan.nama);
     if (!hasil.ok && hasil.alasan === "beda_warung") {
       setPopupBedaWarung({ menu: item, warungLama: hasil.warungLama });
@@ -108,15 +124,15 @@ function DetailStan() {
 
       {/* KARTU INFO */}
       <div className="px-5 -mt-6">
-        <div className="bg-white rounded-2xl shadow-md px-5 pt-6  pb-5 grid grid-cols-3 gap-2">
+        <div className="bg-white rounded-2xl shadow-md px-5 pt-6 pb-5 grid grid-cols-3 gap-2">
           {/* Status */}
           <div className="flex flex-col items-center gap-1.5">
-            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${stan.buka ? "bg-green-50" : "bg-gray-100"}`}>
-              <span className="text-xl">{stan.buka ? "🟢" : "🔴"}</span>
+            <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${warungBuka ? "bg-green-50" : "bg-gray-100"}`}>
+              <span className="text-xl">{warungBuka ? "🟢" : "🔴"}</span>
             </div>
             <p className="text-[11px] text-gray-400">Status</p>
-            <p className={`font-bold text-sm ${stan.buka ? "text-success" : "text-gray-400"}`}>
-              {stan.buka ? "Buka" : "Tutup"}
+            <p className={`font-bold text-sm ${warungBuka ? "text-success" : "text-gray-400"}`}>
+              {warungBuka ? "Buka" : "Tutup"}
             </p>
           </div>
 
@@ -140,6 +156,19 @@ function DetailStan() {
         </div>
       </div>
 
+      {/* BANNER WARUNG TUTUP */}
+      {!warungBuka && (
+        <div className="px-5 mt-4">
+          <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-center gap-3">
+            <span className="text-2xl">🔒</span>
+            <div>
+              <p className="font-bold text-red-600 text-sm">Warung sedang tutup</p>
+              <p className="text-red-400 text-xs">Buka jam {stan.jam_buka} - {stan.jam_tutup}. Silakan kembali nanti ya!</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* DAFTAR MENU */}
       <section className="px-5 mt-6">
         <h2 className="text-lg font-bold text-ink mb-4">Daftar Menu</h2>
@@ -151,7 +180,7 @@ function DetailStan() {
               <div
                 key={item.id}
                 className={`bg-cream rounded-2xl p-4 flex items-center gap-4 transition ${
-                  habis ? "opacity-50 grayscale" : ""
+                  habis || !warungBuka ? "opacity-50 grayscale" : ""
                 }`}
               >
                 <div className="w-16 h-16 rounded-xl bg-white flex items-center justify-center text-3xl shrink-0 overflow-hidden">
@@ -171,7 +200,9 @@ function DetailStan() {
                 </div>
 
                 {/* Tombol tambah / pengatur jumlah */}
-                {habis ? (
+                {!warungBuka ? (
+                  <span className="text-xs text-gray-400 font-medium shrink-0">Tutup</span>
+                ) : habis ? (
                   <span className="text-xs text-gray-400 font-medium shrink-0">—</span>
                 ) : qty === 0 ? (
                   <button
