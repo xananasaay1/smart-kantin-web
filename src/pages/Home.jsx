@@ -32,14 +32,12 @@ function Home() {
     stan.nama.toLowerCase().includes(cari.toLowerCase())
   );
 
-  // Hitung berapa warung yang sedang buka (untuk statistik hero)
   const jumlahBuka = stans.filter((s) => s.buka).length;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
       {/* HERO HEADER */}
       <header className="bg-gradient-to-br from-brand to-brand-dark px-5 pt-10 pb-20 rounded-b-[2rem] shadow-lg relative overflow-hidden">
-        {/* Lingkaran hiasan samar di latar */}
         <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/10"></div>
         <div className="absolute top-20 -left-8 w-24 h-24 rounded-full bg-white/5"></div>
 
@@ -55,7 +53,6 @@ function Home() {
               />
               <span className="text-white font-extrabold text-lg">Smart Kantin</span>
             </div>
-            {/* Lencana warung buka */}
             {!loading && (
               <div className="bg-white/15 backdrop-blur px-3 py-1.5 rounded-full flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-green-300 animate-pulse"></span>
@@ -170,6 +167,28 @@ function Home() {
             <p className="text-gray-400 text-sm mt-1">Coba kata kunci lain</p>
           </div>
         )}
+
+        {/* FOOTER: akses mitra/penjual */}
+        <div className="mt-8 mb-2">
+          <button
+            onClick={() => navigate("/mitra")}
+            className="w-full bg-white rounded-2xl p-4 shadow-sm hover:shadow-md transition flex items-center justify-between group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-xl bg-accent/10 flex items-center justify-center text-2xl">
+                🏪
+              </div>
+              <div className="text-left">
+                <p className="font-bold text-ink text-sm">Punya warung di sini?</p>
+                <p className="text-xs text-gray-400">Masuk ke dashboard penjual</p>
+              </div>
+            </div>
+            <span className="text-accent font-bold text-sm group-hover:translate-x-1 transition-transform">
+              Masuk →
+            </span>
+          </button>
+          <p className="text-center text-xs text-gray-300 mt-4">Smart Kantin • Sistem Pre-Order Kantin</p>
+        </div>
       </section>
 
       <StatusPesananBar />
