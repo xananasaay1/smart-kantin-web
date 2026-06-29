@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
 import MitraNav from "../components/MitraNav";
+import { Camera } from "lucide-react";
 
 function MitraProfil() {
   const { stanSaya } = useAuth();
@@ -66,12 +67,11 @@ function MitraProfil() {
     setMenyimpan(false);
 
     if (error) {
-      console.error("❌ Gagal simpan profil:", error);
+      console.error("Gagal simpan profil:", error);
       alert("Gagal menyimpan: " + error.message);
       return;
     }
 
-    console.log("✅ Profil tersimpan. Data baru:", data);
     alert("Profil warung tersimpan!");
   }
 
@@ -98,18 +98,17 @@ function MitraProfil() {
             ) : (
               form.emoji
             )}
-            {/* Overlay saat mengupload */}
             {mengupload && (
               <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center">
-                <span className="w-8 h-8 border-3 border-white/30 border-t-white rounded-full animate-spin"></span>
+                <span className="w-8 h-8 border-[3px] border-white/30 border-t-white rounded-full animate-spin"></span>
                 <span className="text-white text-[10px] font-semibold mt-1">Mengupload...</span>
               </div>
             )}
           </div>
 
           <label className="inline-block mt-4">
-            <span className={`bg-accent/10 text-accent font-semibold text-sm px-5 py-2 rounded-xl cursor-pointer hover:bg-accent/20 transition ${mengupload ? "opacity-60 pointer-events-none" : ""}`}>
-              {mengupload ? "Mengupload..." : "📷 Ganti Foto Warung"}
+            <span className={`inline-flex items-center gap-1.5 bg-accent/10 text-accent font-semibold text-sm px-5 py-2 rounded-xl cursor-pointer hover:bg-accent/20 transition ${mengupload ? "opacity-60 pointer-events-none" : ""}`}>
+              {mengupload ? "Mengupload..." : (<><Camera size={16} strokeWidth={2} /> Ganti Foto Warung</>)}
             </span>
             <input type="file" accept="image/*" onChange={(e) => uploadFoto(e.target.files[0])} className="hidden" />
           </label>

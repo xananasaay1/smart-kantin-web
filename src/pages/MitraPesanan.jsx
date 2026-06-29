@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
 import MitraNav from "../components/MitraNav";
+import { Bell, Inbox, Star, StickyNote, X, Check } from "lucide-react";
 
 function formatRupiah(angka) {
   return "Rp " + angka.toLocaleString("id-ID");
@@ -106,8 +107,8 @@ function MitraPesanan() {
       </header>
 
       {adaBaru && (
-        <div className="fixed top-5 left-1/2 -translate-x-1/2 bg-success text-white px-5 py-3 rounded-2xl shadow-xl z-50 text-sm font-bold animate-bounce">
-          🔔 Pesanan baru masuk!
+        <div className="fixed top-5 left-1/2 -translate-x-1/2 bg-success text-white px-5 py-3 rounded-2xl shadow-xl z-50 text-sm font-bold animate-bounce flex items-center gap-2">
+          <Bell size={16} strokeWidth={2.5} /> Pesanan baru masuk!
         </div>
       )}
 
@@ -134,8 +135,8 @@ function MitraPesanan() {
           <p className="text-center text-gray-400 py-10">Memuat...</p>
         ) : pesananTersaring.length === 0 ? (
           <div className="text-center py-16">
-            <div className="w-20 h-20 rounded-full bg-cream flex items-center justify-center mx-auto mb-3">
-              <span className="text-4xl">📭</span>
+            <div className="w-20 h-20 rounded-full bg-cream flex items-center justify-center mx-auto mb-3 text-gray-300">
+              <Inbox size={40} strokeWidth={1.5} />
             </div>
             <p className="text-gray-500 font-medium">Belum ada pesanan</p>
             <p className="text-gray-400 text-sm mt-1">Pesanan baru akan muncul di sini otomatis</p>
@@ -154,8 +155,8 @@ function MitraPesanan() {
                       })}
                     </p>
                     {p.metode_ambil === "preorder" && (
-                      <p className="text-xs text-accent font-semibold mt-1">
-                        ⭐ Pre-Order • ambil {p.jam_ambil}
+                      <p className="text-xs text-accent font-semibold mt-1 flex items-center gap-1">
+                        <Star size={12} fill="currentColor" strokeWidth={0} /> Pre-Order • ambil {p.jam_ambil}
                       </p>
                     )}
                   </div>
@@ -165,8 +166,8 @@ function MitraPesanan() {
                 </div>
 
                 {p.catatan && (
-                  <p className="text-xs text-gray-500 mt-2 bg-orange-50 rounded-lg px-3 py-2">
-                    📝 {p.catatan}
+                  <p className="text-xs text-gray-500 mt-2 bg-orange-50 rounded-lg px-3 py-2 flex items-start gap-1.5">
+                    <StickyNote size={13} className="text-accent mt-0.5 shrink-0" strokeWidth={2} /> {p.catatan}
                   </p>
                 )}
 
@@ -177,24 +178,24 @@ function MitraPesanan() {
                     <div className="flex gap-2">
                       <button
                         onClick={() => ubahStatus(p.id, "ditolak")}
-                        className="px-4 py-2 rounded-xl text-sm font-semibold text-red-500 border border-red-200 hover:bg-red-50 transition"
+                        className="px-3 py-2 rounded-xl text-sm font-semibold text-red-500 border border-red-200 hover:bg-red-50 transition flex items-center gap-1"
                       >
-                        Tolak
+                        <X size={15} strokeWidth={2.5} /> Tolak
                       </button>
                       <button
                         onClick={() => ubahStatus(p.id, "siap")}
-                        className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-success hover:bg-green-700 transition"
+                        className="px-3 py-2 rounded-xl text-sm font-bold text-white bg-success hover:bg-green-700 transition flex items-center gap-1"
                       >
-                        Siap Diambil
+                        <Check size={15} strokeWidth={2.5} /> Siap Diambil
                       </button>
                     </div>
                   )}
                   {p.status === "siap" && (
                     <button
                       onClick={() => ubahStatus(p.id, "selesai")}
-                      className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-accent hover:bg-orange-600 transition"
+                      className="px-4 py-2 rounded-xl text-sm font-bold text-white bg-accent hover:bg-orange-600 transition flex items-center gap-1"
                     >
-                      Tandai Selesai
+                      <Check size={15} strokeWidth={2.5} /> Tandai Selesai
                     </button>
                   )}
                 </div>

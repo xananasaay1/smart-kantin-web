@@ -2,16 +2,17 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useCart } from "../context/CartContext";
+import { X } from "lucide-react";
 
 function StatusPesananBar() {
   const navigate = useNavigate();
   const { pesananSaya } = useCart();
   const [pesananAktif, setPesananAktif] = useState(null);
+  const [ditutup, setDitutup] = useState(null); // id+status pesanan yang ditutup user
 
   useEffect(() => {
     if (pesananSaya.length === 0) return;
 
-    // Ambil pesanan yang masih berjalan (belum selesai/ditolak terlalu lama)
     async function ambilPesananAktif() {
       const { data } = await supabase
         .from("pesanan")
@@ -20,14 +21,12 @@ function StatusPesananBar() {
         .order("created_at", { ascending: false });
 
       if (data && data.length > 0) {
-        // Cari pesanan yang statusnya masih "hidup" (diproses/siap)
         const aktif = data.find((p) => p.status === "diproses" || p.status === "siap");
         setPesananAktif(aktif || null);
       }
     }
     ambilPesananAktif();
 
-    // Real-time: pantau perubahan status
     const channel = supabase
       .channel("status-bar")
       .on(
@@ -35,7 +34,6 @@ function StatusPesananBar() {
         { event: "UPDATE", schema: "public", table: "pesanan" },
         (payload) => {
           if (pesananSaya.includes(payload.new.id)) {
-            // Kalau jadi selesai/ditolak, sembunyikan setelah beberapa detik
             if (payload.new.status === "selesai" || payload.new.status === "ditolak") {
               setPesananAktif(payload.new);
               setTimeout(() => setPesananAktif(null), 6000);
@@ -50,10 +48,13 @@ function StatusPesananBar() {
     return () => supabase.removeChannel(channel);
   }, [pesananSaya]);
 
-  // Kalau tidak ada pesanan aktif, jangan tampilkan apa-apa
   if (!pesananAktif) return null;
 
-  // Tentukan tampilan berdasarkan status
+  // Kalau user sudah menutup bar untuk pesanan+status ini, jangan tampilkan
+  // (tapi kalau status berubah, bar muncul lagi karena penanda beda)
+  const penanda = `${pesananAktif.id}-${pesananAktif.status}`;
+  if (ditutup === penanda) return null;
+
   function infoStatus(status) {
     if (status === "diproses")
       return { emoji: "👨‍🍳", teks: "Pesanan sedang diproses", warna: "bg-accent", sub: "Penjual sedang menyiapkan pesananmu" };
@@ -70,25 +71,37 @@ function StatusPesananBar() {
 
   return (
     <div className="fixed bottom-20 left-0 right-0 px-4 z-30 animate-[slideUp_0.3s_ease-out]">
-      <button
-        onClick={() => navigate("/pesanan-saya")}
-        className={`w-full ${info.warna} text-white rounded-2xl px-4 py-3 shadow-2xl flex items-center gap-3 hover:scale-[1.02] transition`}
-      >
-        {/* Emoji status dengan animasi denyut */}
-        <div className="text-2xl animate-pulse">{info.emoji}</div>
+      <div className={`relative w-full ${info.warna} text-white rounded-2xl shadow-2xl`}>
+        {/* Tombol X untuk menutup */}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setDitutup(penanda);
+          }}
+          className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition z-10"
+          aria-label="Tutup"
+        >
+          <X size={16} strokeWidth={2.5} />
+        </button>
 
-        {/* Teks status */}
-        <div className="flex-1 text-left">
-          <p className="font-bold text-sm">{info.teks}</p>
-          <p className="text-white/80 text-xs">{info.sub}</p>
-        </div>
+        {/* Area utama (klik untuk lacak) */}
+        <button
+          onClick={() => navigate("/pesanan-saya")}
+          className="w-full px-4 py-3 pr-10 flex items-center gap-3 hover:opacity-95 transition text-left"
+        >
+          <div className="text-2xl animate-pulse">{info.emoji}</div>
 
-        {/* Kode + panah */}
-        <div className="text-right">
-          <p className="text-xs text-white/70">#{pesananAktif.kode}</p>
-          <p className="text-xs font-semibold">Lihat →</p>
-        </div>
-      </button>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-sm">{info.teks}</p>
+            <p className="text-white/80 text-xs truncate">{info.sub}</p>
+          </div>
+
+          <div className="text-right shrink-0">
+            <p className="text-xs text-white/70">#{pesananAktif.kode}</p>
+            <p className="text-xs font-semibold">Lihat →</p>
+          </div>
+        </button>
+      </div>
     </div>
   );
 }

@@ -1,15 +1,16 @@
 import { useNavigate, useLocation } from "react-router-dom";
+import { LayoutDashboard, Inbox, UtensilsCrossed, Star, User } from "lucide-react";
 
 function MitraNav() {
   const navigate = useNavigate();
   const location = useLocation();
 
   const menu = [
-    { path: "/mitra/dashboard", label: "Home", icon: "🏠" },
-    { path: "/mitra/pesanan", label: "Pesanan", icon: "📥" },
-    { path: "/mitra/menu", label: "Menu", icon: "🍽️" },
-    { path: "/mitra/ulasan", label: "Ulasan", icon: "⭐" },
-    { path: "/mitra/profil", label: "Profil", icon: "👤" },
+    { path: "/mitra/dashboard", label: "Home", Icon: LayoutDashboard },
+    { path: "/mitra/pesanan", label: "Pesanan", Icon: Inbox },
+    { path: "/mitra/menu", label: "Menu", Icon: UtensilsCrossed },
+    { path: "/mitra/ulasan", label: "Ulasan", Icon: Star },
+    { path: "/mitra/profil", label: "Profil", Icon: User },
   ];
 
   return (
@@ -17,6 +18,7 @@ function MitraNav() {
       <div className="flex justify-around max-w-lg mx-auto">
         {menu.map((m) => {
           const aktif = location.pathname === m.path;
+          const Ikon = m.Icon;
           return (
             <button
               key={m.path}
@@ -25,8 +27,8 @@ function MitraNav() {
                 aktif ? "text-accent" : "text-gray-400"
               }`}
             >
-              <span className="text-xl">{m.icon}</span>
-              <span className={`text-[11px] ${aktif ? "font-bold" : ""}`}>{m.label}</span>
+              <Ikon size={21} strokeWidth={aktif ? 2.5 : 2} />
+              <span className={`text-[11px] ${aktif ? "font-bold" : "font-medium"}`}>{m.label}</span>
             </button>
           );
         })}

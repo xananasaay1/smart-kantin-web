@@ -92,6 +92,19 @@ function MitraLogin() {
           )}
         </button>
 
+        {/* Daftar warung baru */}
+        <div className="mt-6 text-center">
+          <p className="text-sm text-gray-500">
+            Belum punya warung?{" "}
+            <button
+              onClick={() => navigate("/mitra/daftar")}
+              className="text-accent font-bold hover:underline"
+            >
+              Daftar di sini
+            </button>
+          </p>
+        </div>
+
         {/* Kembali ke customer */}
         <button
           onClick={() => navigate("/")}

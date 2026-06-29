@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
+import { ArrowLeft, ShoppingCart, Plus, Minus, Trash2, NotebookPen, ArrowRight } from "lucide-react";
 
 function formatRupiah(angka) {
   return "Rp " + angka.toLocaleString("id-ID");
@@ -16,16 +17,17 @@ function Keranjang() {
         <header className="bg-brand px-5 pt-10 pb-6 rounded-b-3xl shadow-lg flex items-center gap-3">
           <button
             onClick={() => navigate(-1)}
-            className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 transition flex items-center justify-center text-white text-xl"
+            className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 active:scale-95 transition flex items-center justify-center text-white"
+            aria-label="Kembali"
           >
-            ←
+            <ArrowLeft size={20} strokeWidth={2.5} />
           </button>
           <h1 className="text-white text-xl font-extrabold">Keranjang</h1>
         </header>
 
         <div className="flex-1 flex flex-col items-center justify-center px-5 text-center">
-          <div className="w-24 h-24 rounded-full bg-cream flex items-center justify-center mb-4">
-            <span className="text-5xl">🛒</span>
+          <div className="w-24 h-24 rounded-full bg-cream flex items-center justify-center mb-4 text-gray-300">
+            <ShoppingCart size={44} strokeWidth={1.5} />
           </div>
           <p className="text-ink font-bold text-lg">Keranjang masih kosong</p>
           <p className="text-gray-400 text-sm mt-1">Yuk, pilih menu favoritmu dulu</p>
@@ -46,9 +48,10 @@ function Keranjang() {
       <header className="bg-brand px-5 pt-10 pb-6 rounded-b-3xl shadow-lg flex items-center gap-3">
         <button
           onClick={() => navigate(-1)}
-          className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 transition flex items-center justify-center text-white text-xl"
+          className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 active:scale-95 transition flex items-center justify-center text-white shrink-0"
+          aria-label="Kembali"
         >
-          ←
+          <ArrowLeft size={20} strokeWidth={2.5} />
         </button>
         <div>
           <h1 className="text-white text-xl font-extrabold">Keranjang</h1>
@@ -73,9 +76,9 @@ function Keranjang() {
               <p className="text-brand font-bold mt-0.5">{formatRupiah(item.harga)}</p>
               <button
                 onClick={() => hapus(item.id)}
-                className="text-xs text-gray-400 hover:text-red-500 transition mt-1"
+                className="text-xs text-gray-400 hover:text-red-500 transition mt-1 flex items-center gap-1"
               >
-                Hapus
+                <Trash2 size={13} strokeWidth={2} /> Hapus
               </button>
             </div>
 
@@ -83,16 +86,16 @@ function Keranjang() {
             <div className="flex items-center gap-2 shrink-0">
               <button
                 onClick={() => kurang(item.id)}
-                className="w-8 h-8 rounded-full bg-gray-100 text-ink font-bold hover:bg-gray-200 transition"
+                className="w-8 h-8 rounded-full bg-gray-100 text-ink flex items-center justify-center hover:bg-gray-200 active:scale-95 transition"
               >
-                −
+                <Minus size={16} strokeWidth={2.5} />
               </button>
               <span className="font-bold text-ink w-5 text-center">{item.jumlah}</span>
               <button
                 onClick={() => tambah(item)}
-                className="w-8 h-8 rounded-full bg-accent text-white font-bold hover:bg-orange-600 transition"
+                className="w-8 h-8 rounded-full bg-accent text-white flex items-center justify-center hover:bg-orange-600 active:scale-95 transition"
               >
-                +
+                <Plus size={16} strokeWidth={2.5} />
               </button>
             </div>
           </div>
@@ -102,7 +105,7 @@ function Keranjang() {
       {/* CATATAN UNTUK PENJUAL */}
       <section className="px-5 mt-5">
         <label className="text-sm font-semibold text-ink flex items-center gap-1.5">
-          <span>📝</span> Catatan untuk penjual
+          <NotebookPen size={16} strokeWidth={2} className="text-accent" /> Catatan untuk penjual
         </label>
         <textarea
           value={catatan}
@@ -145,10 +148,10 @@ function Keranjang() {
         </div>
         <button
           onClick={() => navigate("/checkout")}
-          className="w-full bg-brand hover:bg-brand-dark text-white rounded-2xl py-4 font-bold shadow-md transition flex items-center justify-center gap-2"
+          className="w-full bg-brand hover:bg-brand-dark text-white rounded-2xl py-4 font-bold shadow-md active:scale-[0.99] transition flex items-center justify-center gap-2"
         >
           Lanjut ke Checkout
-          <span>→</span>
+          <ArrowRight size={20} strokeWidth={2.5} />
         </button>
       </div>
     </div>

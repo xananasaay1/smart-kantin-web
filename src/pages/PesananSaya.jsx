@@ -3,15 +3,16 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import { useCart } from "../context/CartContext";
 import CustomerNav from "../components/CustomerNav";
+import { ArrowLeft, ReceiptText, ChefHat, CheckCircle2, PartyPopper, Frown, Star, Check } from "lucide-react";
 
 function formatRupiah(angka) {
   return "Rp " + angka.toLocaleString("id-ID");
 }
 
 const TAHAP = [
-  { key: "diproses", label: "Diproses", desc: "Pesanan sedang disiapkan", icon: "👨‍🍳" },
-  { key: "siap", label: "Siap Diambil", desc: "Pesanan siap, silakan ambil", icon: "✅" },
-  { key: "selesai", label: "Selesai", desc: "Pesanan telah diambil", icon: "🎉" },
+  { key: "diproses", label: "Diproses", desc: "Pesanan sedang disiapkan", Icon: ChefHat },
+  { key: "siap", label: "Siap Diambil", desc: "Pesanan siap, silakan ambil", Icon: CheckCircle2 },
+  { key: "selesai", label: "Selesai", desc: "Pesanan telah diambil", Icon: PartyPopper },
 ];
 
 function PesananSaya() {
@@ -59,7 +60,6 @@ function PesananSaya() {
     return TAHAP.findIndex((t) => t.key === status);
   }
 
-  // Badge status di pojok kartu
   function badgeStatus(status) {
     if (status === "diproses") return { teks: "Diproses", kelas: "bg-accent/10 text-accent" };
     if (status === "siap") return { teks: "Siap Diambil", kelas: "bg-green-100 text-success" };
@@ -74,9 +74,10 @@ function PesananSaya() {
       <header className="bg-brand px-5 pt-10 pb-6 rounded-b-3xl shadow-lg flex items-center gap-3">
         <button
           onClick={() => navigate("/")}
-          className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 transition flex items-center justify-center text-white text-xl"
+          className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 active:scale-95 transition flex items-center justify-center text-white shrink-0"
+          aria-label="Kembali"
         >
-          ←
+          <ArrowLeft size={20} strokeWidth={2.5} />
         </button>
         <div>
           <h1 className="text-white text-xl font-extrabold">Pesanan Saya</h1>
@@ -87,8 +88,8 @@ function PesananSaya() {
       {/* KOSONG */}
       {!loading && pesanan.length === 0 && (
         <div className="text-center py-20 px-5">
-          <div className="w-24 h-24 rounded-full bg-cream flex items-center justify-center mx-auto mb-4">
-            <span className="text-5xl">🧾</span>
+          <div className="w-24 h-24 rounded-full bg-cream flex items-center justify-center mx-auto mb-4 text-gray-300">
+            <ReceiptText size={44} strokeWidth={1.5} />
           </div>
           <p className="text-ink font-bold text-lg">Belum ada pesanan</p>
           <p className="text-gray-400 text-sm mt-1">Pesananmu akan muncul di sini</p>
@@ -117,8 +118,8 @@ function PesananSaya() {
                   <p className="font-bold text-ink">#{p.kode}</p>
                   <p className="text-xs text-gray-400 mt-0.5">{p.stan_nama}</p>
                   {p.metode_ambil === "preorder" && (
-                    <p className="text-xs text-accent font-semibold mt-1">
-                      ⭐ Pre-Order • ambil {p.jam_ambil}
+                    <p className="text-xs text-accent font-semibold mt-1 flex items-center gap-1">
+                      <Star size={12} fill="currentColor" strokeWidth={0} /> Pre-Order • ambil {p.jam_ambil}
                     </p>
                   )}
                 </div>
@@ -132,7 +133,7 @@ function PesananSaya() {
 
               {ditolak ? (
                 <div className="mt-4 bg-red-50 rounded-xl p-4 text-center">
-                  <p className="text-3xl mb-1">😔</p>
+                  <Frown size={32} className="text-red-400 mx-auto mb-1" strokeWidth={2} />
                   <p className="text-red-500 font-semibold text-sm">Pesanan ditolak penjual</p>
                   <p className="text-red-400 text-xs mt-0.5">Silakan coba pesan lagi</p>
                 </div>
@@ -141,15 +142,16 @@ function PesananSaya() {
                   {TAHAP.map((t, idx) => {
                     const sudah = idx <= tahap;
                     const aktif = idx === tahap;
+                    const IkonTahap = t.Icon;
                     return (
                       <div key={t.key} className="flex gap-3">
                         <div className="flex flex-col items-center">
                           <div
-                            className={`w-8 h-8 rounded-full flex items-center justify-center text-sm transition ${
+                            className={`w-8 h-8 rounded-full flex items-center justify-center transition ${
                               sudah ? "bg-success text-white" : "bg-gray-100 text-gray-300"
                             } ${aktif ? "ring-4 ring-success/20" : ""}`}
                           >
-                            {sudah ? t.icon : idx + 1}
+                            {sudah ? <IkonTahap size={16} strokeWidth={2.5} /> : <span className="text-sm">{idx + 1}</span>}
                           </div>
                           {idx < TAHAP.length - 1 && (
                             <div className={`w-0.5 h-8 ${idx < tahap ? "bg-success" : "bg-gray-200"}`}></div>
@@ -169,14 +171,14 @@ function PesananSaya() {
               {p.status === "selesai" && !p.sudah_dirating && (
                 <button
                   onClick={() => navigate("/rating", { state: { pesanan: p } })}
-                  className="mt-3 w-full bg-accent hover:bg-orange-600 text-white rounded-xl py-3 font-bold shadow-md transition"
+                  className="mt-3 w-full bg-accent hover:bg-orange-600 text-white rounded-xl py-3 font-bold shadow-md active:scale-[0.99] transition flex items-center justify-center gap-2"
                 >
-                  ⭐ Beri Rating
+                  <Star size={18} fill="currentColor" strokeWidth={0} /> Beri Rating
                 </button>
               )}
               {p.status === "selesai" && p.sudah_dirating && (
-                <p className="mt-3 text-center text-sm text-success font-semibold">
-                  ✓ Terima kasih atas ratingmu!
+                <p className="mt-3 text-center text-sm text-success font-semibold flex items-center justify-center gap-1">
+                  <Check size={16} strokeWidth={2.5} /> Terima kasih atas ratingmu!
                 </p>
               )}
             </div>

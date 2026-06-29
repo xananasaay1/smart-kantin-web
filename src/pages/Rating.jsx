@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "../lib/supabase";
+import { ArrowLeft, Star, MessageSquare } from "lucide-react";
 
 function Rating() {
   const navigate = useNavigate();
@@ -15,7 +16,7 @@ function Rating() {
   if (!pesanan) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-3 px-5">
-        <p className="text-5xl">⭐</p>
+        <Star size={48} className="text-gray-300" strokeWidth={1.5} />
         <p className="text-gray-600 font-medium">Tidak ada pesanan untuk dirating</p>
         <button onClick={() => navigate("/")} className="mt-2 bg-brand text-white px-5 py-2 rounded-xl font-semibold">
           Kembali
@@ -55,16 +56,17 @@ function Rating() {
     navigate("/pesanan-saya");
   }
 
-  const labelBintang = ["", "Buruk 😞", "Kurang 😕", "Cukup 🙂", "Bagus 😊", "Sangat Bagus 🤩"];
+  const labelBintang = ["", "Buruk", "Kurang", "Cukup", "Bagus", "Sangat Bagus"];
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <header className="bg-brand px-5 pt-10 pb-6 rounded-b-3xl shadow-lg flex items-center gap-3">
         <button
           onClick={() => navigate(-1)}
-          className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 transition flex items-center justify-center text-white text-xl"
+          className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 active:scale-95 transition flex items-center justify-center text-white shrink-0"
+          aria-label="Kembali"
         >
-          ←
+          <ArrowLeft size={20} strokeWidth={2.5} />
         </button>
         <h1 className="text-white text-xl font-extrabold">Beri Rating</h1>
       </header>
@@ -77,17 +79,25 @@ function Rating() {
 
           {/* Bintang */}
           <div className="mt-5 flex justify-center gap-2">
-            {[1, 2, 3, 4, 5].map((n) => (
-              <button
-                key={n}
-                onClick={() => setBintang(n)}
-                onMouseEnter={() => setHover(n)}
-                onMouseLeave={() => setHover(0)}
-                className="text-5xl transition hover:scale-110"
-              >
-                <span className={n <= (hover || bintang) ? "" : "grayscale opacity-30"}>⭐</span>
-              </button>
-            ))}
+            {[1, 2, 3, 4, 5].map((n) => {
+              const aktif = n <= (hover || bintang);
+              return (
+                <button
+                  key={n}
+                  onClick={() => setBintang(n)}
+                  onMouseEnter={() => setHover(n)}
+                  onMouseLeave={() => setHover(0)}
+                  className="transition hover:scale-110"
+                >
+                  <Star
+                    size={44}
+                    className={aktif ? "text-yellow-400" : "text-gray-200"}
+                    fill={aktif ? "currentColor" : "none"}
+                    strokeWidth={aktif ? 0 : 2}
+                  />
+                </button>
+              );
+            })}
           </div>
 
           {/* Label bintang */}
@@ -101,7 +111,7 @@ function Rating() {
         {/* Tulis ulasan */}
         <div className="mt-5">
           <label className="text-sm font-semibold text-ink flex items-center gap-1.5">
-            <span>💬</span> Tulis ulasan (opsional)
+            <MessageSquare size={16} className="text-accent" strokeWidth={2} /> Tulis ulasan (opsional)
           </label>
           <textarea
             value={komentar}
@@ -127,7 +137,9 @@ function Rating() {
           ) : bintang === 0 ? (
             "Pilih bintang dulu"
           ) : (
-            "Kirim Rating ⭐"
+            <>
+              <Star size={18} fill="currentColor" strokeWidth={0} /> Kirim Rating
+            </>
           )}
         </button>
       </div>

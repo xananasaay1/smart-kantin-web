@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
 import MitraNav from "../components/MitraNav";
+import { Star, MessageSquare } from "lucide-react";
 
 function MitraUlasan() {
   const { stanSaya } = useAuth();
@@ -47,8 +48,21 @@ function MitraUlasan() {
     jumlah: ulasan.filter((u) => u.rating === bintang).length,
   }));
 
-  function bintangTeks(n) {
-    return "★".repeat(n) + "☆".repeat(5 - n);
+  // Tampilkan bintang sebagai ikon (terisi sesuai rating)
+  function BarisBintang({ n, size = 14 }) {
+    return (
+      <span className="inline-flex gap-0.5">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <Star
+            key={i}
+            size={size}
+            className={i <= n ? "text-yellow-400" : "text-gray-200"}
+            fill={i <= n ? "currentColor" : "none"}
+            strokeWidth={i <= n ? 0 : 2}
+          />
+        ))}
+      </span>
+    );
   }
 
   function waktuRelatif(tanggal) {
@@ -77,7 +91,9 @@ function MitraUlasan() {
           <div className="flex items-center gap-5">
             <div className="text-center shrink-0">
               <p className="text-5xl font-extrabold text-ink leading-none">{rataRata}</p>
-              <p className="text-yellow-500 text-lg mt-1">{bintangTeks(Math.round(rataRata))}</p>
+              <div className="mt-1.5 flex justify-center">
+                <BarisBintang n={Math.round(rataRata)} size={16} />
+              </div>
               <p className="text-xs text-gray-400 mt-1">{totalUlasan} ulasan</p>
             </div>
 
@@ -87,7 +103,7 @@ function MitraUlasan() {
               {distribusi.map((d) => (
                 <div key={d.bintang} className="flex items-center gap-2">
                   <span className="text-xs text-gray-500 w-3">{d.bintang}</span>
-                  <span className="text-yellow-500 text-xs">★</span>
+                  <Star size={11} className="text-yellow-400" fill="currentColor" strokeWidth={0} />
                   <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-yellow-400 rounded-full transition-all duration-500"
@@ -107,8 +123,8 @@ function MitraUlasan() {
 
         {totalUlasan === 0 ? (
           <div className="text-center py-12">
-            <div className="w-20 h-20 rounded-full bg-cream flex items-center justify-center mx-auto mb-3">
-              <span className="text-4xl">💬</span>
+            <div className="w-20 h-20 rounded-full bg-cream flex items-center justify-center mx-auto mb-3 text-gray-300">
+              <MessageSquare size={36} strokeWidth={1.5} />
             </div>
             <p className="text-gray-500 font-medium">Belum ada ulasan</p>
             <p className="text-gray-400 text-sm mt-1">Ulasan pelanggan akan muncul di sini</p>
@@ -124,7 +140,7 @@ function MitraUlasan() {
                     </div>
                     <div>
                       <p className="font-semibold text-ink text-sm">{u.nama_pelanggan || "Pelanggan"}</p>
-                      <p className="text-yellow-500 text-xs">{bintangTeks(u.rating)}</p>
+                      <BarisBintang n={u.rating} size={12} />
                     </div>
                   </div>
                   <span className="text-xs text-gray-400">{waktuRelatif(u.created_at)}</span>

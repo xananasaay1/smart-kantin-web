@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
 import MitraNav from "../components/MitraNav";
+import { Plus, Pencil, Trash2, UtensilsCrossed, Camera } from "lucide-react";
 
 function formatRupiah(angka) {
   return "Rp " + angka.toLocaleString("id-ID");
@@ -115,9 +116,9 @@ function MitraMenu() {
         <h1 className="text-white text-xl font-extrabold">Kelola Menu</h1>
         <button
           onClick={bukaTambah}
-          className="bg-white text-accent font-bold text-sm px-4 py-2 rounded-xl shadow hover:bg-gray-50 transition"
+          className="bg-white text-accent font-bold text-sm px-4 py-2 rounded-xl shadow hover:bg-gray-50 active:scale-95 transition flex items-center gap-1"
         >
-          + Tambah
+          <Plus size={16} strokeWidth={2.5} /> Tambah
         </button>
       </header>
 
@@ -126,7 +127,9 @@ function MitraMenu() {
           <p className="text-center text-gray-400 py-10">Memuat...</p>
         ) : menu.length === 0 ? (
           <div className="text-center py-16">
-            <p className="text-5xl mb-3">🍽️</p>
+            <div className="w-16 h-16 rounded-full bg-cream flex items-center justify-center text-gray-300 mx-auto mb-3">
+              <UtensilsCrossed size={32} strokeWidth={1.5} />
+            </div>
             <p className="text-gray-500 font-medium">Belum ada menu</p>
             <p className="text-gray-400 text-sm mt-1">Tambahkan menu pertamamu</p>
           </div>
@@ -155,15 +158,15 @@ function MitraMenu() {
                   <div className="flex gap-2 shrink-0">
                     <button
                       onClick={() => bukaEdit(item)}
-                      className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition"
+                      className="w-9 h-9 rounded-xl bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 transition"
                     >
-                      ✏️
+                      <Pencil size={16} strokeWidth={2} />
                     </button>
                     <button
                       onClick={() => setKonfirmHapus(item)}
-                      className="w-9 h-9 rounded-xl bg-red-50 hover:bg-red-100 flex items-center justify-center transition"
+                      className="w-9 h-9 rounded-xl bg-red-50 hover:bg-red-100 flex items-center justify-center text-red-500 transition"
                     >
-                      🗑️
+                      <Trash2 size={16} strokeWidth={2} />
                     </button>
                   </div>
                 </div>
@@ -198,8 +201,8 @@ function MitraMenu() {
 
                 <div className="flex-1">
                   <label className="block">
-                    <span className={`inline-block bg-accent/10 text-accent font-semibold text-sm px-4 py-2 rounded-xl cursor-pointer hover:bg-accent/20 transition ${mengupload ? "opacity-60 pointer-events-none" : ""}`}>
-                      {mengupload ? "Mengupload..." : form.foto_url ? "Ganti Foto" : "📷 Pilih Foto"}
+                    <span className={`inline-flex items-center gap-1.5 bg-accent/10 text-accent font-semibold text-sm px-4 py-2 rounded-xl cursor-pointer hover:bg-accent/20 transition ${mengupload ? "opacity-60 pointer-events-none" : ""}`}>
+                      {mengupload ? "Mengupload..." : (<><Camera size={16} strokeWidth={2} /> {form.foto_url ? "Ganti Foto" : "Pilih Foto"}</>)}
                     </span>
                     <input
                       type="file"
@@ -301,7 +304,9 @@ function MitraMenu() {
       {konfirmHapus && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-5 z-50">
           <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl">
-            <p className="text-4xl mb-3">🗑️</p>
+            <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center text-red-500 mx-auto mb-3">
+              <Trash2 size={28} strokeWidth={2} />
+            </div>
             <h3 className="font-bold text-ink text-lg">Hapus menu?</h3>
             <p className="text-gray-500 text-sm mt-2">
               Yakin mau menghapus <b>{konfirmHapus.nama}</b>? Tindakan ini tidak bisa dibatalkan.

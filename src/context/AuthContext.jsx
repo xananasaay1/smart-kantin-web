@@ -50,13 +50,25 @@ export function AuthProvider({ children }) {
     return error;
   }
 
+  // Registrasi mitra baru (warung otomatis dibuat oleh trigger di database)
+  async function daftar(email, password, namaWarung) {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { nama_warung: namaWarung }, // dipakai trigger untuk nama warung
+      },
+    });
+    return { data, error };
+  }
+
   async function logout() {
     await supabase.auth.signOut();
     setStanSaya(null);
   }
 
   return (
-    <AuthContext.Provider value={{ user, stanSaya, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, stanSaya, loading, login, logout, daftar }}>
       {children}
     </AuthContext.Provider>
   );

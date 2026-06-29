@@ -1,4 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
+import { Check, MapPin } from "lucide-react";
 
 function Sukses() {
   const navigate = useNavigate();
@@ -15,13 +16,13 @@ function Sukses() {
         {/* Centang sukses dengan cincin ganda */}
         <div className="w-28 h-28 rounded-full bg-success/10 flex items-center justify-center mb-5">
           <div className="w-20 h-20 rounded-full bg-success/20 flex items-center justify-center">
-            <div className="w-14 h-14 rounded-full bg-success flex items-center justify-center text-white text-3xl shadow-lg">
-              ✓
+            <div className="w-14 h-14 rounded-full bg-success flex items-center justify-center text-white shadow-lg">
+              <Check size={32} strokeWidth={3} />
             </div>
           </div>
         </div>
 
-        <h1 className="text-2xl font-extrabold text-ink">Pesanan Berhasil! 🎉</h1>
+        <h1 className="text-2xl font-extrabold text-ink">Pesanan Berhasil!</h1>
         <p className="text-gray-500 mt-2 max-w-xs">
           Pesananmu sudah diteruskan ke penjual dan sedang diproses.
         </p>
@@ -35,9 +36,9 @@ function Sukses() {
         <div className="mt-8 w-full max-w-xs space-y-3">
           <button
             onClick={() => navigate("/pesanan-saya")}
-            className="w-full bg-brand hover:bg-brand-dark text-white rounded-2xl py-4 font-bold shadow-md transition flex items-center justify-center gap-2"
+            className="w-full bg-brand hover:bg-brand-dark text-white rounded-2xl py-4 font-bold shadow-md active:scale-[0.99] transition flex items-center justify-center gap-2"
           >
-            📍 Lacak Pesanan
+            <MapPin size={20} strokeWidth={2.5} /> Lacak Pesanan
           </button>
           <button
             onClick={() => navigate("/")}

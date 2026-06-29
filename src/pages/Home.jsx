@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabase";
 import { cekBuka } from "../lib/jamBuka";
 import CustomerNav from "../components/CustomerNav";
 import StatusPesananBar from "../components/StatusPesananBar";
+import { Search, Star, Clock, Store, ChevronRight, SearchX } from "lucide-react";
 
 function Home() {
   const navigate = useNavigate();
@@ -12,7 +13,6 @@ function Home() {
   const [loading, setLoading] = useState(true);
   const [waktuSekarang, setWaktuSekarang] = useState(Date.now());
 
-  // Perbarui tiap menit supaya status buka/tutup ikut jam real-time
   useEffect(() => {
     const timer = setInterval(() => setWaktuSekarang(Date.now()), 60000);
     return () => clearInterval(timer);
@@ -36,7 +36,6 @@ function Home() {
     ambilStans();
   }, []);
 
-  // Hitung status buka tiap warung (gabungan: manual + jam). waktuSekarang membuat ini dihitung ulang tiap menit.
   const stansDenganStatus = stans.map((s) => ({
     ...s,
     sedangBuka: cekBuka(s.buka, s.jam_buka, s.jam_tutup),
@@ -76,7 +75,7 @@ function Home() {
 
           {/* Sapaan besar */}
           <h1 className="text-white text-3xl font-extrabold leading-tight">
-            Mau makan apa<br />hari ini? 🍽️
+            Mau makan apa<br />hari ini?
           </h1>
           <p className="text-white/80 text-sm mt-2">
             Pesan dari kantin tanpa antre, ambil sesuai jadwalmu.
@@ -84,9 +83,7 @@ function Home() {
 
           {/* Kotak pencarian */}
           <div className="mt-5 flex items-center gap-3 bg-white rounded-2xl px-4 py-3.5 shadow-lg">
-            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+            <Search size={20} className="text-gray-400 shrink-0" strokeWidth={2} />
             <input
               type="text"
               value={cari}
@@ -159,12 +156,14 @@ function Home() {
 
                   <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
                     <span className="flex items-center gap-1">
-                      <span className="text-yellow-500">★</span>
+                      <Star size={13} className="text-yellow-500" fill="currentColor" strokeWidth={0} />
                       <span className="font-semibold text-ink">{stan.rating}</span>
                       <span>({stan.jumlah_ulasan})</span>
                     </span>
                     <span className="text-gray-300">•</span>
-                    <span className="flex items-center gap-1">🕐 {stan.jam_buka}-{stan.jam_tutup}</span>
+                    <span className="flex items-center gap-1">
+                      <Clock size={13} strokeWidth={2} /> {stan.jam_buka}-{stan.jam_tutup}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -175,7 +174,9 @@ function Home() {
         {/* Pesan kalau pencarian tidak ketemu */}
         {!loading && stanTersaring.length === 0 && (
           <div className="text-center py-16">
-            <p className="text-5xl mb-3">🔍</p>
+            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 mx-auto mb-3">
+              <SearchX size={32} strokeWidth={1.5} />
+            </div>
             <p className="text-gray-500 font-medium">Warung tidak ditemukan</p>
             <p className="text-gray-400 text-sm mt-1">Coba kata kunci lain</p>
           </div>
@@ -188,16 +189,16 @@ function Home() {
             className="w-full bg-white rounded-2xl p-4 shadow-sm hover:shadow-md transition flex items-center justify-between group"
           >
             <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-xl bg-accent/10 flex items-center justify-center text-2xl">
-                🏪
+              <div className="w-11 h-11 rounded-xl bg-accent/10 flex items-center justify-center text-accent">
+                <Store size={22} strokeWidth={2} />
               </div>
               <div className="text-left">
                 <p className="font-bold text-ink text-sm">Punya warung di sini?</p>
                 <p className="text-xs text-gray-400">Masuk ke dashboard penjual</p>
               </div>
             </div>
-            <span className="text-accent font-bold text-sm group-hover:translate-x-1 transition-transform">
-              Masuk →
+            <span className="text-accent font-bold text-sm flex items-center gap-0.5 group-hover:translate-x-1 transition-transform">
+              Masuk <ChevronRight size={16} strokeWidth={2.5} />
             </span>
           </button>
           <p className="text-center text-xs text-gray-300 mt-4">Smart Kantin • Sistem Pre-Order Kantin</p>

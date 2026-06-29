@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
 import { cekBuka } from "../lib/jamBuka";
 import MitraNav from "../components/MitraNav";
+import { ClipboardList, Wallet, CheckCircle2, Star, Inbox, UtensilsCrossed, User, Clock, ChevronRight } from "lucide-react";
 
 function formatRupiah(angka) {
   return "Rp " + angka.toLocaleString("id-ID");
@@ -19,7 +20,6 @@ function MitraDashboard() {
   const [loading, setLoading] = useState(true);
   const [waktuSekarang, setWaktuSekarang] = useState(Date.now());
 
-  // Perbarui tiap menit supaya status buka/tutup ikut jam
   useEffect(() => {
     const timer = setInterval(() => setWaktuSekarang(Date.now()), 60000);
     return () => clearInterval(timer);
@@ -75,9 +75,7 @@ function MitraDashboard() {
 
   const pesananBaru = pesanan.filter((p) => p.status === "diproses").length;
 
-  // Status sebenarnya (gabungan manual + jam) — ini yang dilihat customer
   const warungBukaAsli = stan ? cekBuka(stan.buka, stan.jam_buka, stan.jam_tutup) : false;
-  // Apakah tutup KARENA di luar jam (padahal mitra set buka)?
   const tutupKarenaJam = stan && stan.buka && !warungBukaAsli;
 
   async function handleLogout() {
@@ -129,7 +127,7 @@ function MitraDashboard() {
             </button>
           </div>
 
-          {/* Toggle buka/tutup — tampilkan STATUS SEBENARNYA (ikut jam) */}
+          {/* Toggle buka/tutup — STATUS SEBENARNYA (ikut jam) */}
           <div className="mt-4 bg-white/15 backdrop-blur rounded-2xl px-4 py-3 flex items-center justify-between">
             <div>
               <span className="text-white font-semibold">Status Warung</span>
@@ -151,10 +149,10 @@ function MitraDashboard() {
             </button>
           </div>
 
-          {/* Keterangan kalau tutup karena jam (padahal mitra set buka) */}
+          {/* Keterangan kalau tutup karena jam */}
           {tutupKarenaJam && (
             <div className="mt-2 bg-white/20 rounded-xl px-4 py-2.5 flex items-start gap-2">
-              <span className="text-sm">🕐</span>
+              <Clock size={15} className="text-white mt-0.5 shrink-0" strokeWidth={2} />
               <p className="text-white text-xs leading-relaxed">
                 Kamu mengatur warung <b>buka</b>, tapi sekarang di luar jam operasional ({stan.jam_buka}-{stan.jam_tutup}), jadi pelanggan melihat warung <b>tutup</b>. Warung akan otomatis buka lagi saat masuk jam operasional.
               </p>
@@ -167,39 +165,45 @@ function MitraDashboard() {
       <section className="px-5 -mt-4">
         <div className="grid grid-cols-3 gap-3">
           <div className="bg-white rounded-2xl p-4 shadow-sm text-center">
-            <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center text-lg mx-auto mb-1">📋</div>
+            <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center text-blue-500 mx-auto mb-1">
+              <ClipboardList size={18} strokeWidth={2} />
+            </div>
             <p className="text-xl font-extrabold text-ink">{pesananHariIni.length}</p>
             <p className="text-xs text-gray-400">Pesanan</p>
           </div>
           <div className="bg-white rounded-2xl p-4 shadow-sm text-center">
-            <div className="w-9 h-9 rounded-lg bg-green-50 flex items-center justify-center text-lg mx-auto mb-1">💰</div>
+            <div className="w-9 h-9 rounded-lg bg-green-50 flex items-center justify-center text-success mx-auto mb-1">
+              <Wallet size={18} strokeWidth={2} />
+            </div>
             <p className="text-sm font-extrabold text-success leading-tight mt-1">{formatRupiah(totalPendapatan)}</p>
             <p className="text-xs text-gray-400 mt-1">Pendapatan</p>
           </div>
           <div className="bg-white rounded-2xl p-4 shadow-sm text-center">
-            <div className="w-9 h-9 rounded-lg bg-orange-50 flex items-center justify-center text-lg mx-auto mb-1">✅</div>
+            <div className="w-9 h-9 rounded-lg bg-orange-50 flex items-center justify-center text-accent mx-auto mb-1">
+              <CheckCircle2 size={18} strokeWidth={2} />
+            </div>
             <p className="text-xl font-extrabold text-ink">{jumlahSelesai}</p>
             <p className="text-xs text-gray-400">Terjual</p>
           </div>
         </div>
       </section>
 
-      {/* RINGKASAN RATING (real-time) */}
+      {/* RINGKASAN RATING */}
       <section className="px-5 mt-6">
         <button
           onClick={() => navigate("/mitra/ulasan")}
           className="w-full bg-white rounded-2xl p-4 shadow-sm hover:shadow-md transition flex items-center justify-between"
         >
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-yellow-50 flex items-center justify-center text-2xl">
-              ⭐
+            <div className="w-12 h-12 rounded-xl bg-yellow-50 flex items-center justify-center text-yellow-500">
+              <Star size={24} fill="currentColor" strokeWidth={0} />
             </div>
             <div className="text-left">
               <p className="font-bold text-ink text-lg">{ratingInfo.rata}</p>
               <p className="text-xs text-gray-400">{ratingInfo.jumlah} ulasan pelanggan</p>
             </div>
           </div>
-          <span className="text-gray-400 text-sm">Lihat semua →</span>
+          <span className="text-gray-400 text-sm flex items-center gap-0.5">Lihat semua <ChevronRight size={16} strokeWidth={2} /></span>
         </button>
       </section>
 
@@ -216,7 +220,7 @@ function MitraDashboard() {
                 {pesananBaru}
               </span>
             )}
-            <span className="text-3xl">📥</span>
+            <span className="text-accent"><Inbox size={28} strokeWidth={2} /></span>
             <p className="font-bold text-ink mt-2">Pesanan Masuk</p>
             <p className="text-xs text-gray-400">Kelola pesanan baru</p>
           </button>
@@ -224,7 +228,7 @@ function MitraDashboard() {
             onClick={() => navigate("/mitra/menu")}
             className="bg-white rounded-2xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition text-left"
           >
-            <span className="text-3xl">🍽️</span>
+            <span className="text-accent"><UtensilsCrossed size={28} strokeWidth={2} /></span>
             <p className="font-bold text-ink mt-2">Kelola Menu</p>
             <p className="text-xs text-gray-400">Atur menu & stok</p>
           </button>
@@ -232,7 +236,7 @@ function MitraDashboard() {
             onClick={() => navigate("/mitra/ulasan")}
             className="bg-white rounded-2xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition text-left"
           >
-            <span className="text-3xl">⭐</span>
+            <span className="text-accent"><Star size={28} strokeWidth={2} /></span>
             <p className="font-bold text-ink mt-2">Ulasan</p>
             <p className="text-xs text-gray-400">Lihat rating pelanggan</p>
           </button>
@@ -240,7 +244,7 @@ function MitraDashboard() {
             onClick={() => navigate("/mitra/profil")}
             className="bg-white rounded-2xl p-5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition text-left"
           >
-            <span className="text-3xl">👤</span>
+            <span className="text-accent"><User size={28} strokeWidth={2} /></span>
             <p className="font-bold text-ink mt-2">Profil Warung</p>
             <p className="text-xs text-gray-400">Atur tampilan warung</p>
           </button>

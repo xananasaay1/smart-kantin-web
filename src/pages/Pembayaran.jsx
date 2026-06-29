@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useCart } from "../context/CartContext";
+import { ArrowLeft, Timer, RefreshCw, Lock, ShieldCheck, Check, X, ScanLine, Loader } from "lucide-react";
 
 function formatRupiah(angka) {
   return "Rp " + angka.toLocaleString("id-ID");
@@ -24,13 +25,12 @@ function Pembayaran() {
   const metodeAmbil = location.state?.metodeAmbil || "sekarang";
   const jamAmbil = location.state?.jamAmbil || null;
 
-  const [detik, setDetik] = useState(30); // hitung mundur 30 detik
+  const [detik, setDetik] = useState(30);
   const [seed, setSeed] = useState(() => Math.floor(Math.random() * 10000));
   const [hangus, setHangus] = useState(false);
-  const [popupVerif, setPopupVerif] = useState(false); // popup verifikasi muncul
-  const [statusVerif, setStatusVerif] = useState("memilih"); // memilih / loading / gagal
+  const [popupVerif, setPopupVerif] = useState(false);
+  const [statusVerif, setStatusVerif] = useState("memilih");
 
-  // Hitung mundur
   useEffect(() => {
     if (hangus) return;
     if (detik <= 0) {
@@ -43,7 +43,6 @@ function Pembayaran() {
     return () => clearInterval(timer);
   }, [detik, hangus]);
 
-  // Generate QR baru (reset timer & pola)
   function generateUlang() {
     setSeed(Math.floor(Math.random() * 10000));
     setDetik(30);
@@ -59,7 +58,9 @@ function Pembayaran() {
   if (!stanAktif) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-3 px-5">
-        <p className="text-5xl">🧾</p>
+        <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-gray-300">
+          <ScanLine size={36} strokeWidth={1.5} />
+        </div>
         <p className="text-gray-600 font-medium">Tidak ada pembayaran aktif</p>
         <button onClick={() => navigate("/")} className="mt-2 bg-brand text-white px-5 py-2 rounded-xl font-semibold">
           Kembali
@@ -68,14 +69,12 @@ function Pembayaran() {
     );
   }
 
-  // Klik "Saya Sudah Bayar" → buka popup verifikasi (belum langsung proses)
   function konfirmasiBayar() {
     if (hangus) return;
     setStatusVerif("memilih");
     setPopupVerif(true);
   }
 
-  // Skenario BERHASIL → simpan pesanan & lanjut
   async function verifikasiBerhasil() {
     setStatusVerif("loading");
     const pesanan = await buatPesanan({
@@ -91,7 +90,6 @@ function Pembayaran() {
     }
   }
 
-  // Skenario GAGAL → tampilkan pesan gagal (untuk didemokan)
   function verifikasiGagal() {
     setStatusVerif("gagal");
   }
@@ -102,7 +100,13 @@ function Pembayaran() {
     <div className="min-h-screen bg-gray-50 pb-32">
       {/* HEADER */}
       <header className="bg-brand px-5 pt-10 pb-6 rounded-b-3xl shadow-lg flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 transition flex items-center justify-center text-white text-xl">←</button>
+        <button
+          onClick={() => navigate(-1)}
+          className="w-10 h-10 rounded-full bg-white/20 hover:bg-white/30 active:scale-95 transition flex items-center justify-center text-white shrink-0"
+          aria-label="Kembali"
+        >
+          <ArrowLeft size={20} strokeWidth={2.5} />
+        </button>
         <h1 className="text-white text-xl font-extrabold">Pembayaran QRIS</h1>
       </header>
 
@@ -128,13 +132,13 @@ function Pembayaran() {
 
             {hangus && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 rounded-2xl">
-                <p className="text-3xl mb-2">⏱️</p>
+                <Timer size={36} className="text-gray-500 mb-2" strokeWidth={2} />
                 <p className="font-bold text-ink text-sm">QR Kedaluwarsa</p>
                 <button
                   onClick={generateUlang}
-                  className="mt-3 bg-brand text-white px-4 py-2 rounded-xl text-sm font-bold shadow hover:bg-brand-dark transition"
+                  className="mt-3 bg-brand text-white px-4 py-2 rounded-xl text-sm font-bold shadow hover:bg-brand-dark active:scale-95 transition flex items-center gap-1.5"
                 >
-                  🔄 Buat QR Baru
+                  <RefreshCw size={15} strokeWidth={2.5} /> Buat QR Baru
                 </button>
               </div>
             )}
@@ -142,9 +146,9 @@ function Pembayaran() {
 
           {/* Timer */}
           {!hangus && (
-            <div className="mt-4 inline-flex items-center gap-2 bg-orange-50 px-4 py-2 rounded-full">
-              <span className="text-accent">⏱️</span>
-              <span className="text-sm font-bold text-accent">Berlaku {formatWaktu(detik)}</span>
+            <div className="mt-4 inline-flex items-center gap-2 bg-orange-50 px-4 py-2 rounded-full text-accent">
+              <Timer size={16} strokeWidth={2} />
+              <span className="text-sm font-bold">Berlaku {formatWaktu(detik)}</span>
             </div>
           )}
 
@@ -152,7 +156,7 @@ function Pembayaran() {
             Scan dengan aplikasi e-wallet / m-banking
           </p>
           <div className="mt-1 inline-flex items-center gap-1 text-xs text-gray-400">
-            <span>🔒</span> Pembayaran disimulasikan untuk demo
+            <Lock size={12} strokeWidth={2} /> Pembayaran disimulasikan untuk demo
           </div>
         </div>
 
@@ -168,9 +172,15 @@ function Pembayaran() {
         <button
           onClick={konfirmasiBayar}
           disabled={hangus}
-          className="w-full bg-success hover:bg-green-700 text-white rounded-2xl py-4 font-bold shadow-md transition disabled:opacity-40 flex items-center justify-center gap-2"
+          className="w-full bg-success hover:bg-green-700 text-white rounded-2xl py-4 font-bold shadow-md active:scale-[0.99] transition disabled:opacity-40 flex items-center justify-center gap-2"
         >
-          {hangus ? "QR Kedaluwarsa — buat QR baru dulu" : "Saya Sudah Bayar ✓"}
+          {hangus ? (
+            "QR Kedaluwarsa — buat QR baru dulu"
+          ) : (
+            <>
+              <Check size={20} strokeWidth={2.5} /> Saya Sudah Bayar
+            </>
+          )}
         </button>
       </div>
 
@@ -179,10 +189,12 @@ function Pembayaran() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-5 z-50">
           <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl">
 
-            {/* TAHAP 1: pilih (simulasi cek pembayaran) */}
+            {/* TAHAP 1: pilih */}
             {statusVerif === "memilih" && (
               <>
-                <p className="text-4xl mb-3">🔍</p>
+                <div className="w-14 h-14 rounded-full bg-brand/10 flex items-center justify-center text-brand mx-auto mb-3">
+                  <ShieldCheck size={28} strokeWidth={2} />
+                </div>
                 <h3 className="font-bold text-ink text-lg">Verifikasi Pembayaran</h3>
                 <p className="text-gray-500 text-sm mt-2">
                   Sistem akan memeriksa apakah pembayaran sebesar <b>{formatRupiah(totalHarga)}</b> sudah diterima.
@@ -190,9 +202,9 @@ function Pembayaran() {
                 <div className="flex flex-col gap-2 mt-5">
                   <button
                     onClick={verifikasiBerhasil}
-                    className="w-full bg-success text-white py-3 rounded-xl font-bold hover:bg-green-700 transition"
+                    className="w-full bg-success text-white py-3 rounded-xl font-bold hover:bg-green-700 transition flex items-center justify-center gap-2"
                   >
-                    ✓ Pembayaran Diterima
+                    <Check size={18} strokeWidth={2.5} /> Pembayaran Diterima
                   </button>
                   <button
                     onClick={verifikasiGagal}
@@ -213,7 +225,7 @@ function Pembayaran() {
             {/* TAHAP loading */}
             {statusVerif === "loading" && (
               <>
-                <span className="w-12 h-12 border-4 border-success/30 border-t-success rounded-full animate-spin mx-auto block"></span>
+                <Loader size={48} className="text-success animate-spin mx-auto" strokeWidth={2} />
                 <p className="font-bold text-ink mt-4">Memverifikasi pembayaran...</p>
                 <p className="text-gray-400 text-sm mt-1">Mohon tunggu sebentar</p>
               </>
@@ -222,8 +234,8 @@ function Pembayaran() {
             {/* TAHAP gagal */}
             {statusVerif === "gagal" && (
               <>
-                <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto">
-                  <span className="text-3xl text-red-500">✕</span>
+                <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto text-red-500">
+                  <X size={32} strokeWidth={2.5} />
                 </div>
                 <h3 className="font-bold text-red-500 text-lg mt-4">Pembayaran Belum Diterima</h3>
                 <p className="text-gray-500 text-sm mt-2">

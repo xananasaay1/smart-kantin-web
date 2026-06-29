@@ -16,6 +16,7 @@ import PesananSaya from "./pages/PesananSaya";
 import Rating from "./pages/Rating";
 import MitraMenu from "./pages/MitraMenu";
 import MitraProfil from "./pages/MitraProfil";
+import MitraDaftar from "./pages/MitraDaftar";
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
             <Route path="/pesanan" element={<PesananSaya />} />
             <Route path="/rating" element={<Rating />} />
             <Route path="/mitra" element={<MitraLogin />} />
+            <Route path="/mitra/daftar" element={<MitraDaftar />} />
             <Route path="/mitra/dashboard" element={<ProtectedRoute><MitraDashboard /></ProtectedRoute>} />
             <Route path="/mitra/pesanan" element={<ProtectedRoute><MitraPesanan /></ProtectedRoute>} />
             <Route path="/mitra/ulasan" element={<ProtectedRoute><MitraUlasan /></ProtectedRoute>} />
