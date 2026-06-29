@@ -1,6 +1,10 @@
 import { createContext, useContext, useState } from "react";
 import { supabase } from "../lib/supabase";
 
+function formatRupiah(angka) {
+  return "Rp " + angka.toLocaleString("id-ID");
+}
+
 const CartContext = createContext();
 
 export function useCart() {
@@ -145,6 +149,19 @@ export function CartProvider({ children }) {
     for (const i of items) {
       const stokBaru = i.stok - i.jumlah;
       await supabase.from("menu").update({ stok: stokBaru }).eq("id", i.id);
+    }
+
+    // Kirim notifikasi ke mitra (push notif) — tidak menghambat kalau gagal
+    try {
+      await supabase.functions.invoke("kirim-notif", {
+        body: {
+          stan_id: stanAktif.id,
+          judul: "Pesanan Baru Masuk! 🛎️",
+          isi: `${stanAktif.nama} menerima pesanan ${kode} senilai ${formatRupiah(totalHarga)}`,
+        },
+      });
+    } catch (errNotif) {
+      console.error("Gagal kirim notif (diabaikan):", errNotif);
     }
 
     setItems([]);

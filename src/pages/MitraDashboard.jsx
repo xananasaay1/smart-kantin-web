@@ -4,7 +4,8 @@ import { supabase } from "../lib/supabase";
 import { useAuth } from "../context/AuthContext";
 import { cekBuka } from "../lib/jamBuka";
 import MitraNav from "../components/MitraNav";
-import { ClipboardList, Wallet, CheckCircle2, Star, Inbox, UtensilsCrossed, User, Clock, ChevronRight } from "lucide-react";
+import { aktifkanNotifikasi, pushDidukung, cekSudahLangganan } from "../lib/pushNotif";
+import { ClipboardList, Wallet, CheckCircle2, Star, Inbox, UtensilsCrossed, User, Clock, ChevronRight, Bell, BellRing, BellOff } from "lucide-react";
 
 function formatRupiah(angka) {
   return "Rp " + angka.toLocaleString("id-ID");
@@ -20,9 +21,27 @@ function MitraDashboard() {
   const [loading, setLoading] = useState(true);
   const [waktuSekarang, setWaktuSekarang] = useState(Date.now());
 
+  // Status push notif
+  const [notifStatus, setNotifStatus] = useState("cek"); // cek | belum | aktif | tidak_didukung
+  const [notifProses, setNotifProses] = useState(false);
+  const [notifPesan, setNotifPesan] = useState("");
+
   useEffect(() => {
     const timer = setInterval(() => setWaktuSekarang(Date.now()), 60000);
     return () => clearInterval(timer);
+  }, []);
+
+  // Cek status notif saat halaman dibuka
+  useEffect(() => {
+    async function cekNotif() {
+      if (!pushDidukung()) {
+        setNotifStatus("tidak_didukung");
+        return;
+      }
+      const sudah = await cekSudahLangganan();
+      setNotifStatus(sudah ? "aktif" : "belum");
+    }
+    cekNotif();
   }, []);
 
   useEffect(() => {
@@ -61,6 +80,25 @@ function MitraDashboard() {
       setRatingInfo({ rata, jumlah: data.length });
     } else {
       setRatingInfo({ rata: "0.0", jumlah: 0 });
+    }
+  }
+
+  async function handleAktifkanNotif() {
+    setNotifProses(true);
+    setNotifPesan("");
+    const hasil = await aktifkanNotifikasi(stanSaya.id);
+    setNotifProses(false);
+
+    if (hasil.ok) {
+      setNotifStatus("aktif");
+      setNotifPesan("Notifikasi berhasil diaktifkan!");
+      setTimeout(() => setNotifPesan(""), 3000);
+    } else {
+      let pesan = "Gagal mengaktifkan notifikasi.";
+      if (hasil.alasan === "izin_ditolak") pesan = "Izin notifikasi ditolak. Aktifkan lewat pengaturan browser.";
+      else if (hasil.alasan === "tidak_didukung") pesan = "Perangkat/browser ini tidak mendukung notifikasi.";
+      setNotifPesan(pesan);
+      setTimeout(() => setNotifPesan(""), 5000);
     }
   }
 
@@ -187,6 +225,47 @@ function MitraDashboard() {
           </div>
         </div>
       </section>
+
+      {/* TOMBOL AKTIFKAN NOTIFIKASI */}
+      {notifStatus !== "tidak_didukung" && (
+        <section className="px-5 mt-4">
+          {notifStatus === "aktif" ? (
+            <div className="bg-green-50 border border-green-100 rounded-2xl p-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-success shrink-0">
+                <BellRing size={20} strokeWidth={2} />
+              </div>
+              <div className="flex-1">
+                <p className="font-bold text-success text-sm">Notifikasi aktif</p>
+                <p className="text-xs text-green-600">Kamu akan diberi tahu saat ada pesanan baru</p>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={handleAktifkanNotif}
+              disabled={notifProses}
+              className="w-full bg-white rounded-2xl p-4 shadow-sm hover:shadow-md transition flex items-center gap-3 disabled:opacity-60"
+            >
+              <div className="w-10 h-10 rounded-full bg-accent/10 flex items-center justify-center text-accent shrink-0">
+                {notifProses ? (
+                  <span className="w-5 h-5 border-2 border-accent/30 border-t-accent rounded-full animate-spin"></span>
+                ) : (
+                  <Bell size={20} strokeWidth={2} />
+                )}
+              </div>
+              <div className="flex-1 text-left">
+                <p className="font-bold text-ink text-sm">{notifProses ? "Mengaktifkan..." : "Aktifkan Notifikasi"}</p>
+                <p className="text-xs text-gray-400">Dapat notif HP saat ada pesanan baru</p>
+              </div>
+              <ChevronRight size={18} className="text-gray-300" strokeWidth={2} />
+            </button>
+          )}
+          {notifPesan && (
+            <p className={`text-xs mt-2 text-center font-medium ${notifStatus === "aktif" ? "text-success" : "text-red-500"}`}>
+              {notifPesan}
+            </p>
+          )}
+        </section>
+      )}
 
       {/* RINGKASAN RATING */}
       <section className="px-5 mt-6">
