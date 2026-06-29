@@ -4,7 +4,7 @@ import { supabase } from "../lib/supabase";
 import { useCart } from "../context/CartContext";
 import { cekBuka } from "../lib/jamBuka";
 import StatusPesananBar from "../components/StatusPesananBar";
-import { ArrowLeft, Plus, Minus, Clock, Star, Lock, ShoppingCart, ShoppingBag } from "lucide-react";
+import { ArrowLeft, Plus, Minus, Clock, Star, CalendarClock, ShoppingCart, ShoppingBag } from "lucide-react";
 
 function formatRupiah(angka) {
   return "Rp " + angka.toLocaleString("id-ID");
@@ -55,13 +55,20 @@ function DetailStan() {
 
   const warungBuka = stan ? cekBuka(stan.buka, stan.jam_buka, stan.jam_tutup) : false;
 
+  // Selipkan data jam warung ke item, supaya Checkout tahu warung buka/tutup
+  function bungkusItem(item) {
+    return {
+      ...item,
+      _stanBuka: stan.buka,
+      _stanJamBuka: stan.jam_buka,
+      _stanJamTutup: stan.jam_tutup,
+    };
+  }
+
   function cobaTambah(item) {
-    if (!warungBuka) {
-      setPesanStok("Warung sedang tutup, tidak bisa memesan");
-      setTimeout(() => setPesanStok(""), 2500);
-      return;
-    }
-    const hasil = tambah(item, stan.id, stan.nama);
+    // Warung tutup TIDAK lagi memblokir — pre-order diperbolehkan.
+    // Yang tetap diblokir: beda warung & stok habis.
+    const hasil = tambah(bungkusItem(item), stan.id, stan.nama);
     if (!hasil.ok && hasil.alasan === "beda_warung") {
       setPopupBedaWarung({ menu: item, warungLama: hasil.warungLama });
     } else if (!hasil.ok && hasil.alasan === "stok_habis") {
@@ -75,7 +82,6 @@ function DetailStan() {
     return item ? item.jumlah : 0;
   }
 
-  // Daftar kategori yang BENAR-BENAR ada menunya (urutan: Makanan, Minuman, Snack, lalu lainnya)
   const urutanKategori = ["Makanan", "Minuman", "Snack"];
   const kategoriTersedia = [...new Set(menu.map((m) => m.kategori || "Lainnya"))].sort(
     (a, b) => {
@@ -86,7 +92,6 @@ function DetailStan() {
   );
   const tabKategori = ["Semua", ...kategoriTersedia];
 
-  // Menu yang ditampilkan sesuai tab aktif
   const menuTampil =
     kategoriAktif === "Semua"
       ? menu
@@ -174,16 +179,16 @@ function DetailStan() {
         </div>
       </div>
 
-      {/* BANNER WARUNG TUTUP */}
+      {/* BANNER WARUNG TUTUP — informatif: bisa pre-order */}
       {!warungBuka && (
         <div className="px-5 mt-4">
-          <div className="bg-red-50 border border-red-100 rounded-2xl p-4 flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center text-red-500 shrink-0">
-              <Lock size={20} strokeWidth={2} />
+          <div className="bg-orange-50 border border-orange-100 rounded-2xl p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-accent shrink-0">
+              <CalendarClock size={20} strokeWidth={2} />
             </div>
             <div>
-              <p className="font-bold text-red-600 text-sm">Warung sedang tutup</p>
-              <p className="text-red-400 text-xs">Buka jam {stan.jam_buka} - {stan.jam_tutup}. Silakan kembali nanti ya!</p>
+              <p className="font-bold text-accent text-sm">Warung sedang tutup — tapi bisa Pre-Order!</p>
+              <p className="text-orange-400 text-xs">Pesan sekarang, ambil saat warung buka (mulai jam {stan.jam_buka}).</p>
             </div>
           </div>
         </div>
@@ -193,7 +198,7 @@ function DetailStan() {
       <section className="px-5 mt-6">
         <h2 className="text-lg font-bold text-ink mb-3">Daftar Menu</h2>
 
-        {/* TAB KATEGORI (hanya muncul kalau ada >1 kategori) */}
+        {/* TAB KATEGORI */}
         {kategoriTersedia.length > 1 && (
           <div className="flex gap-2 mb-4 overflow-x-auto pb-1 -mx-1 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {tabKategori.map((kat) => (
@@ -223,7 +228,7 @@ function DetailStan() {
                 <div
                   key={item.id}
                   className={`bg-cream rounded-2xl p-4 flex items-center gap-4 transition ${
-                    habis || !warungBuka ? "opacity-50 grayscale" : ""
+                    habis ? "opacity-50 grayscale" : ""
                   }`}
                 >
                   <div className="w-16 h-16 rounded-xl bg-white flex items-center justify-center text-3xl shrink-0 overflow-hidden">
@@ -242,10 +247,8 @@ function DetailStan() {
                     </p>
                   </div>
 
-                  {/* Tombol tambah / pengatur jumlah */}
-                  {!warungBuka ? (
-                    <span className="text-xs text-gray-400 font-medium shrink-0">Tutup</span>
-                  ) : habis ? (
+                  {/* Tombol tambah / pengatur jumlah — saat tutup tetap bisa (pre-order), kecuali stok habis */}
+                  {habis ? (
                     <span className="text-xs text-gray-400 font-medium shrink-0">Habis</span>
                   ) : qty === 0 ? (
                     <button
@@ -328,7 +331,7 @@ function DetailStan() {
               </button>
               <button
                 onClick={() => {
-                  gantiWarung(popupBedaWarung.menu, stan.id, stan.nama);
+                  gantiWarung(bungkusItem(popupBedaWarung.menu), stan.id, stan.nama);
                   setPopupBedaWarung(null);
                 }}
                 className="flex-1 bg-brand text-white py-3 rounded-xl font-semibold hover:bg-brand-dark transition"

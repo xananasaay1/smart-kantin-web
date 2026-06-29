@@ -4,6 +4,17 @@ import { useAuth } from "../context/AuthContext";
 import MitraNav from "../components/MitraNav";
 import { Camera } from "lucide-react";
 
+// Ubah "08.00" atau "08:00" → "08:00" (untuk input time HTML)
+function keFormatInput(jam) {
+  if (!jam) return "";
+  return jam.replace(".", ":");
+}
+// Ubah "08:00" → "08.00" (untuk disimpan ke database, konsisten dengan data lama)
+function keFormatSimpan(jam) {
+  if (!jam) return "";
+  return jam.replace(":", ".");
+}
+
 function MitraProfil() {
   const { stanSaya } = useAuth();
   const [stan, setStan] = useState(null);
@@ -21,8 +32,8 @@ function MitraProfil() {
     setForm({
       nama: stanSaya.nama || "",
       deskripsi: stanSaya.deskripsi || "",
-      jam_buka: stanSaya.jam_buka || "",
-      jam_tutup: stanSaya.jam_tutup || "",
+      jam_buka: keFormatInput(stanSaya.jam_buka) || "",
+      jam_tutup: keFormatInput(stanSaya.jam_tutup) || "",
       foto_url: stanSaya.foto_url || "",
       emoji: stanSaya.emoji || "🏪",
     });
@@ -53,13 +64,17 @@ function MitraProfil() {
       alert("Nama warung harus diisi");
       return;
     }
+    if (!form.jam_buka || !form.jam_tutup) {
+      alert("Jam buka dan jam tutup harus diisi");
+      return;
+    }
     setMenyimpan(true);
 
     const { data, error } = await supabase.from("stan").update({
       nama: form.nama,
       deskripsi: form.deskripsi,
-      jam_buka: form.jam_buka,
-      jam_tutup: form.jam_tutup,
+      jam_buka: keFormatSimpan(form.jam_buka),
+      jam_tutup: keFormatSimpan(form.jam_tutup),
       foto_url: form.foto_url || null,
       emoji: form.emoji,
     }).eq("id", stanSaya.id).select();
@@ -148,24 +163,23 @@ function MitraProfil() {
             <div>
               <label className="text-sm font-semibold text-ink">Jam Buka</label>
               <input
-                type="text"
+                type="time"
                 value={form.jam_buka}
                 onChange={(e) => setForm({ ...form, jam_buka: e.target.value })}
-                placeholder="07.00"
-                className="mt-1 w-full bg-gray-50 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-accent/40 transition"
+                className="mt-1 w-full bg-gray-50 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-accent/40 transition text-ink font-medium"
               />
             </div>
             <div>
               <label className="text-sm font-semibold text-ink">Jam Tutup</label>
               <input
-                type="text"
+                type="time"
                 value={form.jam_tutup}
                 onChange={(e) => setForm({ ...form, jam_tutup: e.target.value })}
-                placeholder="14.00"
-                className="mt-1 w-full bg-gray-50 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-accent/40 transition"
+                className="mt-1 w-full bg-gray-50 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-accent/40 transition text-ink font-medium"
               />
             </div>
           </div>
+          <p className="text-xs text-gray-400">Ketuk untuk memilih jam. Warung otomatis buka/tutup sesuai jam ini.</p>
         </div>
 
         <button

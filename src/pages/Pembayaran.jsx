@@ -17,6 +17,16 @@ function buatPolaQR(seed) {
   return pola;
 }
 
+// Cek apakah sel (baris r, kolom c) bagian dari finder pattern (3 kotak sudut khas QR)
+function adaFinder(r, c) {
+  const di = (br, bc) => br >= 0 && br < 7 && bc >= 0 && bc < 7;
+  // kiri-atas, kanan-atas, kiri-bawah
+  if (di(r, c)) return true;            // kiri atas (0-6, 0-6)
+  if (di(r, c - 18)) return true;       // kanan atas (kolom 18-24)
+  if (di(r - 18, c)) return true;       // kiri bawah (baris 18-24)
+  return false;
+}
+
 function Pembayaran() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -95,6 +105,8 @@ function Pembayaran() {
   }
 
   const pola = buatPolaQR(seed);
+  // NMID palsu (khas QRIS) berdasarkan id warung — konsisten
+  const nmid = "ID" + String(1000000000000 + (stanAktif.id * 73529)).slice(0, 13);
 
   return (
     <div className="min-h-screen bg-gray-50 pb-32">
@@ -111,52 +123,77 @@ function Pembayaran() {
       </header>
 
       <section className="px-5 mt-6">
-        <div className="bg-white rounded-3xl shadow-md p-6 text-center relative overflow-hidden">
-          {/* Logo QRIS */}
-          <div className="flex items-center justify-center gap-2 mb-1">
-            <span className="text-xs font-extrabold text-brand tracking-wider">QRIS</span>
-            <span className="text-[10px] text-gray-400">Smart Kantin Pay</span>
+        <div className="bg-white rounded-3xl shadow-md overflow-hidden">
+          {/* HEADER QRIS (gaya khas, tanpa jiplak logo resmi) */}
+          <div className="bg-gradient-to-r from-[#D32F2F] via-[#C2185B] to-[#1565C0] px-5 py-3 flex items-center justify-between">
+            <span className="text-white font-extrabold text-xl italic tracking-tight">QRIS</span>
+            <span className="text-white/90 text-[11px] font-medium text-right leading-tight">
+              Satu QR<br />untuk semua
+            </span>
           </div>
 
-          <p className="text-sm text-gray-500 mt-2">Bayar ke</p>
-          <p className="font-bold text-ink text-lg">{stanAktif.nama}</p>
-          <p className="text-brand font-extrabold text-3xl mt-1">{formatRupiah(totalHarga)}</p>
+          <div className="p-6 text-center">
+            {/* Info merchant */}
+            <p className="font-extrabold text-ink text-lg">{stanAktif.nama}</p>
+            <p className="text-[11px] text-gray-400 mt-0.5">NMID: {nmid}</p>
+            <p className="text-[11px] text-gray-400">Smart Kantin • Surabaya</p>
 
-          {/* QR + overlay hangus */}
-          <div className="mt-5 mx-auto w-60 h-60 bg-white rounded-2xl border-2 border-gray-100 p-3 flex items-center justify-center relative">
-            <div className={`grid grid-cols-[repeat(25,1fr)] gap-0 w-full h-full ${hangus ? "blur-sm opacity-30" : ""}`}>
-              {pola.map((isi, i) => (
-                <div key={i} className={isi ? "bg-ink" : "bg-transparent"}></div>
-              ))}
+            <p className="text-brand font-extrabold text-3xl mt-3">{formatRupiah(totalHarga)}</p>
+
+            {/* QR + overlay hangus */}
+            <div className="mt-4 mx-auto w-60 h-60 bg-white rounded-2xl border-2 border-gray-100 p-3 flex items-center justify-center relative">
+              <div className={`relative grid grid-cols-[repeat(25,1fr)] gap-0 w-full h-full ${hangus ? "blur-sm opacity-30" : ""}`}>
+                {pola.map((isi, i) => {
+                  const r = Math.floor(i / 25);
+                  const c = i % 25;
+                  // sel finder pattern digambar terpisah (di bawah), jadi di sini kosongkan
+                  if (adaFinder(r, c)) return <div key={i}></div>;
+                  return <div key={i} className={isi ? "bg-ink" : "bg-transparent"}></div>;
+                })}
+
+                {/* 3 finder pattern (kotak sudut khas QR) */}
+                <FinderPattern posisi="top-0 left-0" />
+                <FinderPattern posisi="top-0 right-0" />
+                <FinderPattern posisi="bottom-0 left-0" />
+
+                {/* Logo merchant di tengah */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 bg-white rounded-lg shadow flex items-center justify-center border-2 border-gray-100 overflow-hidden">
+                  {stanAktif.foto_url ? (
+                    <img src={stanAktif.foto_url} alt={stanAktif.nama} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-2xl">{stanAktif.emoji || "🏪"}</span>
+                  )}
+                </div>
+              </div>
+
+              {hangus && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 rounded-2xl">
+                  <Timer size={36} className="text-gray-500 mb-2" strokeWidth={2} />
+                  <p className="font-bold text-ink text-sm">QR Kedaluwarsa</p>
+                  <button
+                    onClick={generateUlang}
+                    className="mt-3 bg-brand text-white px-4 py-2 rounded-xl text-sm font-bold shadow hover:bg-brand-dark active:scale-95 transition flex items-center gap-1.5"
+                  >
+                    <RefreshCw size={15} strokeWidth={2.5} /> Buat QR Baru
+                  </button>
+                </div>
+              )}
             </div>
 
-            {hangus && (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/80 rounded-2xl">
-                <Timer size={36} className="text-gray-500 mb-2" strokeWidth={2} />
-                <p className="font-bold text-ink text-sm">QR Kedaluwarsa</p>
-                <button
-                  onClick={generateUlang}
-                  className="mt-3 bg-brand text-white px-4 py-2 rounded-xl text-sm font-bold shadow hover:bg-brand-dark active:scale-95 transition flex items-center gap-1.5"
-                >
-                  <RefreshCw size={15} strokeWidth={2.5} /> Buat QR Baru
-                </button>
+            {/* Timer */}
+            {!hangus && (
+              <div className="mt-4 inline-flex items-center gap-2 bg-orange-50 px-4 py-2 rounded-full text-accent">
+                <Timer size={16} strokeWidth={2} />
+                <span className="text-sm font-bold">Berlaku {formatWaktu(detik)}</span>
               </div>
             )}
-          </div>
 
-          {/* Timer */}
-          {!hangus && (
-            <div className="mt-4 inline-flex items-center gap-2 bg-orange-50 px-4 py-2 rounded-full text-accent">
-              <Timer size={16} strokeWidth={2} />
-              <span className="text-sm font-bold">Berlaku {formatWaktu(detik)}</span>
+            <p className="text-xs text-gray-400 mt-3">
+              Scan dengan aplikasi e-wallet / m-banking
+            </p>
+            <div className="mt-1 inline-flex items-center gap-1 text-xs text-gray-400">
+              <Lock size={12} strokeWidth={2} /> Pembayaran disimulasikan untuk demo
             </div>
-          )}
-
-          <p className="text-xs text-gray-400 mt-3">
-            Scan dengan aplikasi e-wallet / m-banking
-          </p>
-          <div className="mt-1 inline-flex items-center gap-1 text-xs text-gray-400">
-            <Lock size={12} strokeWidth={2} /> Pembayaran disimulasikan untuk demo
           </div>
         </div>
 
@@ -189,7 +226,6 @@ function Pembayaran() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-5 z-50">
           <div className="bg-white rounded-3xl p-6 max-w-sm w-full text-center shadow-2xl">
 
-            {/* TAHAP 1: pilih */}
             {statusVerif === "memilih" && (
               <>
                 <div className="w-14 h-14 rounded-full bg-brand/10 flex items-center justify-center text-brand mx-auto mb-3">
@@ -222,7 +258,6 @@ function Pembayaran() {
               </>
             )}
 
-            {/* TAHAP loading */}
             {statusVerif === "loading" && (
               <>
                 <Loader size={48} className="text-success animate-spin mx-auto" strokeWidth={2} />
@@ -231,7 +266,6 @@ function Pembayaran() {
               </>
             )}
 
-            {/* TAHAP gagal */}
             {statusVerif === "gagal" && (
               <>
                 <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto text-red-500">
@@ -261,6 +295,19 @@ function Pembayaran() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// Komponen finder pattern (kotak sudut khas QR): kotak hitam besar + bingkai putih + kotak hitam kecil
+function FinderPattern({ posisi }) {
+  return (
+    <div className={`absolute ${posisi} w-[28%] h-[28%] flex items-center justify-center`}>
+      <div className="w-full h-full bg-ink rounded-[3px] flex items-center justify-center">
+        <div className="w-[64%] h-[64%] bg-white rounded-[2px] flex items-center justify-center">
+          <div className="w-[58%] h-[58%] bg-ink rounded-[1px]"></div>
+        </div>
+      </div>
     </div>
   );
 }

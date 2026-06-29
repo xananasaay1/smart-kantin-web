@@ -10,6 +10,7 @@ function Home() {
   const navigate = useNavigate();
   const [cari, setCari] = useState("");
   const [stans, setStans] = useState([]);
+  const [menus, setMenus] = useState([]);
   const [loading, setLoading] = useState(true);
   const [waktuSekarang, setWaktuSekarang] = useState(Date.now());
 
@@ -19,21 +20,25 @@ function Home() {
   }, []);
 
   useEffect(() => {
-    async function ambilStans() {
+    async function ambilData() {
       setLoading(true);
-      const { data, error } = await supabase
+      const { data: dataStan, error } = await supabase
         .from("stan")
         .select("*")
         .order("id");
+      const { data: dataMenu } = await supabase
+        .from("menu")
+        .select("nama, stan_id");
 
       if (error) {
         console.error("Gagal ambil stan:", error);
       } else {
-        setStans(data);
+        setStans(dataStan);
       }
+      setMenus(dataMenu || []);
       setLoading(false);
     }
-    ambilStans();
+    ambilData();
   }, []);
 
   const stansDenganStatus = stans.map((s) => ({
@@ -42,9 +47,18 @@ function Home() {
   }));
   const jumlahBuka = stansDenganStatus.filter((s) => s.sedangBuka).length;
 
-  const stanTersaring = stansDenganStatus.filter((stan) =>
-    stan.nama.toLowerCase().includes(cari.toLowerCase())
-  );
+  // Pencarian: cocokkan dengan nama warung ATAU nama menu di warung itu
+  const kataCari = cari.trim().toLowerCase();
+  const stanTersaring = stansDenganStatus.filter((stan) => {
+    if (!kataCari) return true;
+    // cocok nama warung?
+    if (stan.nama.toLowerCase().includes(kataCari)) return true;
+    // cocok salah satu menu di warung ini?
+    const adaMenuCocok = menus.some(
+      (m) => m.stan_id === stan.id && m.nama.toLowerCase().includes(kataCari)
+    );
+    return adaMenuCocok;
+  });
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
@@ -88,7 +102,7 @@ function Home() {
               type="text"
               value={cari}
               onChange={(e) => setCari(e.target.value)}
-              placeholder="Cari warung favoritmu..."
+              placeholder="Cari makanan atau warung..."
               className="flex-1 outline-none text-ink placeholder-gray-400 bg-transparent"
             />
           </div>
@@ -99,8 +113,10 @@ function Home() {
       <section className="px-5 mt-7">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-lg font-bold text-ink">Warung Tersedia</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Pilih warung untuk mulai memesan</p>
+            <h2 className="text-lg font-bold text-ink">{kataCari ? "Hasil Pencarian" : "Warung Tersedia"}</h2>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {kataCari ? `Warung dengan "${cari}"` : "Pilih warung untuk mulai memesan"}
+            </p>
           </div>
           {!loading && (
             <span className="text-sm text-gray-400 shrink-0">{stanTersaring.length} warung</span>
@@ -177,8 +193,8 @@ function Home() {
             <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 mx-auto mb-3">
               <SearchX size={32} strokeWidth={1.5} />
             </div>
-            <p className="text-gray-500 font-medium">Warung tidak ditemukan</p>
-            <p className="text-gray-400 text-sm mt-1">Coba kata kunci lain</p>
+            <p className="text-gray-500 font-medium">Tidak ditemukan</p>
+            <p className="text-gray-400 text-sm mt-1">Coba kata kunci lain, misal "nasi" atau "es teh"</p>
           </div>
         )}
 

@@ -1,7 +1,6 @@
 import { createContext, useContext, useState } from "react";
 import { supabase } from "../lib/supabase";
 
-// "Context" = penyimpanan bersama yang bisa diakses semua halaman.
 const CartContext = createContext();
 
 export function useCart() {
@@ -9,11 +8,10 @@ export function useCart() {
 }
 
 export function CartProvider({ children }) {
-  const [items, setItems] = useState([]);        // isi keranjang
-  const [catatan, setCatatan] = useState("");    // catatan untuk penjual
-  const [stanAktif, setStanAktif] = useState(null); // warung yang sedang dipesan
+  const [items, setItems] = useState([]);
+  const [catatan, setCatatan] = useState("");
+  const [stanAktif, setStanAktif] = useState(null); // warung yang sedang dipesan (+ data jam)
 
-  // id pesanan milik pelanggan ini — disimpan permanen di localStorage
   const [pesananSaya, setPesananSaya] = useState(() => {
     try {
       const tersimpan = localStorage.getItem("pesananSaya");
@@ -22,6 +20,17 @@ export function CartProvider({ children }) {
       return [];
     }
   });
+
+  // Ambil data jam warung dari objek menu/stan yang dikirim (kalau ada)
+  function infoStan(stanId, stanNama, menu) {
+    return {
+      id: stanId,
+      nama: stanNama,
+      buka: menu?._stanBuka,
+      jam_buka: menu?._stanJamBuka,
+      jam_tutup: menu?._stanJamTutup,
+    };
+  }
 
   // Tambah item. Cek stok & asal warung.
   function tambah(menu, stanId, stanNama) {
@@ -32,7 +41,7 @@ export function CartProvider({ children }) {
     }
 
     if (items.length === 0) {
-      setStanAktif({ id: stanId, nama: stanNama });
+      setStanAktif(infoStan(stanId, stanNama, menu));
       setItems([{ ...menu, jumlah: 1 }]);
       return { ok: true };
     }
@@ -55,7 +64,7 @@ export function CartProvider({ children }) {
 
   // Ganti warung
   function gantiWarung(menu, stanId, stanNama) {
-    setStanAktif({ id: stanId, nama: stanNama });
+    setStanAktif(infoStan(stanId, stanNama, menu));
     setItems([{ ...menu, jumlah: 1 }]);
     setCatatan("");
   }
@@ -74,11 +83,11 @@ export function CartProvider({ children }) {
     setItems((lama) => lama.filter((i) => i.id !== menuId));
   }
 
-  // Set jumlah item langsung ke angka tertentu (dipakai input keyboard)
+  // Set jumlah item langsung ke angka tertentu
   function setJumlah(menuId, jumlahBaru, stok) {
     let angka = parseInt(jumlahBaru, 10);
     if (isNaN(angka) || angka < 0) angka = 0;
-    if (angka > stok) angka = stok; // PENJAGA: tidak boleh lebih dari stok
+    if (angka > stok) angka = stok;
 
     setItems((lama) => {
       if (angka === 0) {
@@ -103,7 +112,6 @@ export function CartProvider({ children }) {
   async function buatPesanan({ metodeAmbil, jamAmbil, metodeBayar }) {
     const kode = "ORD-" + String(Math.floor(1000 + Math.random() * 9000));
 
-    // 1. Simpan pesanan
     const { data: pesananBaru, error: errPesanan } = await supabase
       .from("pesanan")
       .insert({
@@ -121,11 +129,10 @@ export function CartProvider({ children }) {
       .single();
 
     if (errPesanan) {
-      console.error("❌ Gagal buat pesanan:", errPesanan);
+      console.error("Gagal buat pesanan:", errPesanan);
       return null;
     }
 
-    // 2. Simpan tiap item
     const itemUntukSimpan = items.map((i) => ({
       pesanan_id: pesananBaru.id,
       menu_id: i.id,
@@ -135,18 +142,15 @@ export function CartProvider({ children }) {
     }));
     await supabase.from("pesanan_item").insert(itemUntukSimpan);
 
-    // 3. Kurangi stok tiap menu
     for (const i of items) {
       const stokBaru = i.stok - i.jumlah;
       await supabase.from("menu").update({ stok: stokBaru }).eq("id", i.id);
     }
 
-    // 4. Kosongkan keranjang
     setItems([]);
     setCatatan("");
     setStanAktif(null);
 
-    // 5. Simpan id pesanan ke daftar "pesanan saya" + localStorage (permanen)
     setPesananSaya((lama) => {
       const baru = [pesananBaru.id, ...lama];
       try {
@@ -160,7 +164,6 @@ export function CartProvider({ children }) {
     return { ...pesananBaru };
   }
 
-  // Total
   const totalHarga = items.reduce((sum, i) => sum + i.harga * i.jumlah, 0);
   const totalItem = items.reduce((sum, i) => sum + i.jumlah, 0);
 

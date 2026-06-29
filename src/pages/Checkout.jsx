@@ -1,18 +1,41 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
-import { ArrowLeft, ArrowRight, Store, Zap, CalendarClock, Smartphone, Check } from "lucide-react";
+import { cekBuka } from "../lib/jamBuka";
+import { ArrowLeft, ArrowRight, Store, Zap, CalendarClock, Smartphone, Check, Info, AlertCircle } from "lucide-react";
 
 function formatRupiah(angka) {
   return "Rp " + angka.toLocaleString("id-ID");
+}
+
+// Ubah "08.00" / "08:00" → "08:00"
+function jamKeInput(jam) {
+  if (!jam) return "";
+  return jam.replace(".", ":");
 }
 
 function Checkout() {
   const navigate = useNavigate();
   const { items, stanAktif, totalHarga, totalItem } = useCart();
 
-  const [metodeAmbil, setMetodeAmbil] = useState("sekarang");
-  const [jamAmbil, setJamAmbil] = useState("12:30");
+  const warungBuka = stanAktif
+    ? cekBuka(stanAktif.buka, stanAktif.jam_buka, stanAktif.jam_tutup)
+    : true;
+
+  const jamBukaInput = jamKeInput(stanAktif?.jam_buka) || "08:00";
+  const jamTutupInput = jamKeInput(stanAktif?.jam_tutup) || "17:00";
+
+  const [metodeAmbil, setMetodeAmbil] = useState(warungBuka ? "sekarang" : "preorder");
+  const [jamAmbil, setJamAmbil] = useState(""); // KOSONG dulu — pelanggan harus pilih
+  const [pesanError, setPesanError] = useState("");
+  const [getar, setGetar] = useState(false); // pemicu animasi getar tombol
+
+  // Kalau warung tutup, paksa pre-order
+  useEffect(() => {
+    if (!warungBuka) {
+      setMetodeAmbil("preorder");
+    }
+  }, [warungBuka]);
 
   if (items.length === 0) {
     return (
@@ -28,8 +51,34 @@ function Checkout() {
     );
   }
 
+  function picuGetar(pesan) {
+    setPesanError(pesan);
+    setGetar(true);
+    setTimeout(() => setGetar(false), 500); // animasi getar 0.5 detik
+  }
+
   function lanjutBayar() {
-    navigate("/pembayaran", { state: { metodeAmbil, jamAmbil } });
+    // Kalau pre-order, jam WAJIB diisi
+    if (metodeAmbil === "preorder") {
+      if (!jamAmbil) {
+        picuGetar("Harap isi jam pengambilan terlebih dahulu");
+        return;
+      }
+      // Kalau warung tutup, jam tidak boleh sebelum jam buka
+      if (!warungBuka && jamAmbil < jamBukaInput) {
+        picuGetar(`Jam pengambilan minimal saat warung buka (${stanAktif?.jam_buka})`);
+        return;
+      }
+    }
+
+    // Lolos validasi → lanjut
+    let metodeFinal = metodeAmbil;
+    let jamFinal = jamAmbil;
+    if (!warungBuka) {
+      metodeFinal = "preorder";
+      if (!jamFinal || jamFinal < jamBukaInput) jamFinal = jamBukaInput;
+    }
+    navigate("/pembayaran", { state: { metodeAmbil: metodeFinal, jamAmbil: jamFinal } });
   }
 
   return (
@@ -63,16 +112,31 @@ function Checkout() {
         </div>
       </section>
 
+      {/* BANNER PRE-ORDER (kalau warung tutup) */}
+      {!warungBuka && (
+        <section className="px-5 mt-4">
+          <div className="bg-orange-50 border border-orange-100 rounded-2xl p-4 flex items-start gap-3">
+            <div className="w-9 h-9 rounded-full bg-orange-100 flex items-center justify-center text-accent shrink-0">
+              <Info size={18} strokeWidth={2} />
+            </div>
+            <p className="text-sm text-orange-700 leading-relaxed">
+              Warung sedang tutup, jadi pesanan ini otomatis <b>Pre-Order</b>. Pilih jam pengambilan minimal saat warung buka (mulai <b>{stanAktif?.jam_buka}</b>).
+            </p>
+          </div>
+        </section>
+      )}
+
       {/* METODE PENGAMBILAN */}
       <section className="px-5 mt-5">
         <h2 className="font-bold text-ink mb-3">Metode Pengambilan</h2>
         <div className="space-y-3">
-          {/* Ambil Sekarang */}
+          {/* Ambil Sekarang — dimatikan kalau warung tutup */}
           <button
-            onClick={() => setMetodeAmbil("sekarang")}
+            onClick={() => { if (warungBuka) { setMetodeAmbil("sekarang"); setPesanError(""); } }}
+            disabled={!warungBuka}
             className={`w-full text-left rounded-2xl p-4 shadow-sm border-2 transition flex items-center gap-3 ${
               metodeAmbil === "sekarang" ? "border-brand bg-red-50/50" : "border-transparent bg-white"
-            }`}
+            } ${!warungBuka ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${
               metodeAmbil === "sekarang" ? "border-brand" : "border-gray-300"
@@ -83,13 +147,15 @@ function Checkout() {
               <p className="font-semibold text-ink flex items-center gap-1.5">
                 <Zap size={16} className="text-accent" fill="currentColor" strokeWidth={1.5} /> Ambil Sekarang
               </p>
-              <p className="text-xs text-gray-400 mt-0.5">Pesanan disiapkan secepatnya</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {warungBuka ? "Pesanan disiapkan secepatnya" : "Tidak tersedia saat warung tutup"}
+              </p>
             </div>
           </button>
 
           {/* Pre-Order */}
           <button
-            onClick={() => setMetodeAmbil("preorder")}
+            onClick={() => { setMetodeAmbil("preorder"); setPesanError(""); }}
             className={`w-full text-left rounded-2xl p-4 shadow-sm border-2 transition flex items-center gap-3 ${
               metodeAmbil === "preorder" ? "border-brand bg-red-50/50" : "border-transparent bg-white"
             }`}
@@ -110,14 +176,19 @@ function Checkout() {
 
         {/* Pilih jam (muncul kalau pre-order) */}
         {metodeAmbil === "preorder" && (
-          <div className="mt-3 bg-white rounded-2xl p-4 shadow-sm">
+          <div className={`mt-3 bg-white rounded-2xl p-4 shadow-sm border-2 transition ${pesanError ? "border-red-300" : "border-transparent"}`}>
             <label className="text-sm font-semibold text-ink">Pilih jam pengambilan</label>
             <input
               type="time"
               value={jamAmbil}
-              onChange={(e) => setJamAmbil(e.target.value)}
+              min={!warungBuka ? jamBukaInput : undefined}
+              max={jamTutupInput}
+              onChange={(e) => { setJamAmbil(e.target.value); setPesanError(""); }}
               className="mt-2 w-full bg-gray-50 rounded-xl p-3 outline-none text-ink font-medium focus:ring-2 focus:ring-brand/30 transition"
             />
+            <p className="text-xs text-gray-400 mt-2">
+              Jam buka warung: {stanAktif?.jam_buka} - {stanAktif?.jam_tutup}
+            </p>
           </div>
         )}
       </section>
@@ -150,9 +221,16 @@ function Checkout() {
 
       {/* TOMBOL BAYAR */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 p-4 shadow-xl">
+        {/* Pesan peringatan */}
+        {pesanError && (
+          <div className="mb-3 flex items-center justify-center gap-1.5 text-red-500 text-sm font-semibold">
+            <AlertCircle size={16} strokeWidth={2} />
+            {pesanError}
+          </div>
+        )}
         <button
           onClick={lanjutBayar}
-          className="w-full bg-brand hover:bg-brand-dark text-white rounded-2xl py-4 font-bold shadow-md active:scale-[0.99] transition flex items-center justify-center gap-2"
+          className={`w-full bg-brand hover:bg-brand-dark text-white rounded-2xl py-4 font-bold shadow-md active:scale-[0.99] transition flex items-center justify-center gap-2 ${getar ? "animate-[getar_0.4s_ease-in-out]" : ""}`}
         >
           Lanjut ke Pembayaran
           <ArrowRight size={20} strokeWidth={2.5} />
